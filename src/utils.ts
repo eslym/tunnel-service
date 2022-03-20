@@ -109,6 +109,10 @@ export class DomainMapping<T> {
             }
         }
         let sub = left.pop();
+        if(sub === '**'){
+            // When doing pattern matching, catch all should match only with catch all
+            return this.#resolve([], ['**'].concat(right));
+        }
         let res = this.#resolve(Array.from(left), [sub].concat(right));
         if(!res.found){
             res = this.#resolve(Array.from(left), ['*'].concat(right));
