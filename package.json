@@ -15,6 +15,10 @@
     "build": "gulp build",
     "watch": "gulp watch"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eslym/tunnel-service.git"
+  },
   "author": "0nepeop1e",
   "license": "MIT",
   "devDependencies": {
