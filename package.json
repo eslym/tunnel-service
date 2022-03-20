@@ -1,0 +1,52 @@
+{
+  "name": "@eslym/tunnel",
+  "version": "0.0.2",
+  "description": "Something like cloudflare tunnel but using ssh",
+  "main": "dist/index.js",
+  "bin": {
+    "tunnel-service": "dist/cli.js"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "prod": "NODE_ENV=production node cli.js",
+    "test": "node cli.js",
+    "build": "gulp build",
+    "watch": "gulp watch"
+  },
+  "author": "0nepeop1e",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/express": "^4.17.13",
+    "@types/http-proxy": "^1.17.8",
+    "@types/ip": "^1.1.0",
+    "@types/node": "^16.10.9",
+    "@types/ssh2": "^0.5.51",
+    "@types/ssh2-streams": "^0.1.9",
+    "@types/yaml": "^1.9.7",
+    "@types/yargs": "^17.0.9",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "merge2": "^1.4.1",
+    "ts-node": "^10.3.0",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "@eslym/logger": "^1.0.0",
+    "bcrypt": "^5.0.1",
+    "express": "^4.17.3",
+    "http-proxy": "^1.18.1",
+    "ip": "^1.1.5",
+    "is-valid-domain": "^0.1.6",
+    "json5": "^2.2.0",
+    "punycode": "^2.1.1",
+    "ssh2": "^1.7.0",
+    "ssh2-streams": "^0.4.10",
+    "yaml": "^1.10.2",
+    "yargs": "^17.3.1"
+  }
+}
