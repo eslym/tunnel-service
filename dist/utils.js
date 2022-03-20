@@ -105,6 +105,10 @@ _DomainMapping_mapping = new WeakMap(), _DomainMapping_instances = new WeakSet()
         };
     }
     let sub = left.pop();
+    if (sub === '**') {
+        // When doing pattern matching, catch all should match only with catch all
+        return __classPrivateFieldGet(this, _DomainMapping_instances, "m", _DomainMapping_resolve).call(this, [], ['**'].concat(right));
+    }
     let res = __classPrivateFieldGet(this, _DomainMapping_instances, "m", _DomainMapping_resolve).call(this, Array.from(left), [sub].concat(right));
     if (!res.found) {
         res = __classPrivateFieldGet(this, _DomainMapping_instances, "m", _DomainMapping_resolve).call(this, Array.from(left), ['*'].concat(right));
