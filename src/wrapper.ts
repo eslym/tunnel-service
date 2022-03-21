@@ -75,6 +75,14 @@ export namespace SafeWrapped {
             return this.#client.agents.map(AgentProvider.wrap);
         }
 
+        get activeRequests(): number {
+            return this.#client.activeRequests;
+        }
+
+        get state(): 'active' | 'pausing' | 'shutting-down'{
+            return this.#client.state;
+        }
+
         log(message: string, force?: boolean): Contracts.AsyncResult<void> {
             return this.#client.log(message, force);
         }
@@ -148,6 +156,10 @@ export namespace SafeWrapped {
 
         get binding(): string {
             return this.#agent.binding;
+        }
+
+        get state(): 'active' | 'pausing' | 'shutting-down'{
+            return this.#agent.state;
         }
 
         getAgent(sourceIp: string, sourcePort: number): Contracts.AsyncResult<Agent> {

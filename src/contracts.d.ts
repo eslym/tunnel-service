@@ -69,6 +69,16 @@ export namespace Contracts {
         readonly agents: AgentProvider[];
 
         /**
+         * Count of active request in this client is handling
+         */
+        readonly activeRequests: number,
+
+        /**
+         * The state of the client connection
+         */
+        readonly state: 'active' | 'pausing' | 'shutting-down';
+
+        /**
          * Message to log to SSH client, not recommend using
          * @param message the message
          * @param force true to force write the log to client even logging is not enabled
@@ -127,6 +137,11 @@ export namespace Contracts {
          * The domain which this agent bound to, might be wildcard
          */
         readonly binding: string,
+
+        /**
+         * The state of the provider
+         */
+        readonly state: 'active' | 'pausing' | 'shutting-down';
 
         /**
          * Get the agent from this provider

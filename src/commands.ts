@@ -3,7 +3,7 @@
  */
 
 import * as yargs from "yargs";
-import {ArgumentsCamelCase, Argv} from "yargs";
+import {ArgumentsCamelCase, argv, Argv} from "yargs";
 import {Console} from "console";
 import {ClientConnection} from "./extends";
 
@@ -31,6 +31,30 @@ export const commands = (new (yargs as any)() as Argv).scriptName("")
         for(let pair of argv.client.bindings.entries()){
             argv.console.log(`${pair[0]}: ${pair[1].uuid}`);
         }
+    })
+    .command('pause', 'Pause the current tunnel and stop receiving requests', {}, (argv: ArgumentsCamelCase<ServerContext>)=>{
+        if(argv.client.state !== 'active'){
+            argv.console.log('The current connection is not in active state.');
+            return;
+        }
+        return argv.client.pause();
+    })
+    .command('resume', 'Resume the current tunnel and continue receiving requests', {}, (argv: ArgumentsCamelCase<ServerContext>)=>{
+        if(argv.client.state !== 'pausing'){
+            argv.console.log('The current connection is not pausing.');
+            return;
+        }
+        return argv.client.resume();
+    })
+    .command('exit', 'Shutdown all tunnels and exit.', {}, (argv: ArgumentsCamelCase<ServerContext>)=>{
+        if(argv.client.state === "shutting-down"){
+            argv.console.log('This connection is already shutting down.');
+            return;
+        }
+        return argv.client.shutdown();
+    })
+    .command('requests', 'Get the number of active requests.', {}, (argv: ArgumentsCamelCase<ServerContext>)=>{
+        argv.console.log(argv.client.activeRequests);
     })
     .command('set-weight <weight>', 'Set the weight for load balancing', (cmd) => {
         cmd.positional('weight', {

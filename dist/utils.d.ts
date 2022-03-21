@@ -16,4 +16,5 @@ export declare class DomainMapping<T> {
     addByPattern(pattern: string, value: T): this;
     removePattern(pattern: string): this;
 }
+export declare function wait(milliseconds: number): Promise<unknown>;
 export {};

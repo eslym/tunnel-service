@@ -71,6 +71,12 @@ var SafeWrapped;
         get agents() {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").agents.map(AgentProvider.wrap);
         }
+        get activeRequests() {
+            return __classPrivateFieldGet(this, _ClientConnection_client, "f").activeRequests;
+        }
+        get state() {
+            return __classPrivateFieldGet(this, _ClientConnection_client, "f").state;
+        }
         log(message, force) {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").log(message, force);
         }
@@ -131,6 +137,9 @@ var SafeWrapped;
         }
         get binding() {
             return __classPrivateFieldGet(this, _AgentProvider_agent, "f").binding;
+        }
+        get state() {
+            return __classPrivateFieldGet(this, _AgentProvider_agent, "f").state;
         }
         getAgent(sourceIp, sourcePort) {
             return __classPrivateFieldGet(this, _AgentProvider_agent, "f").getAgent(sourceIp, sourcePort);

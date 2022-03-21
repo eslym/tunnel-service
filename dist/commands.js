@@ -20,6 +20,30 @@ exports.commands = new yargs().scriptName("")
         argv.console.log(`${pair[0]}: ${pair[1].uuid}`);
     }
 })
+    .command('pause', 'Pause the current tunnel and stop receiving requests', {}, (argv) => {
+    if (argv.client.state !== 'active') {
+        argv.console.log('The current connection is not in active state.');
+        return;
+    }
+    return argv.client.pause();
+})
+    .command('resume', 'Resume the current tunnel and continue receiving requests', {}, (argv) => {
+    if (argv.client.state !== 'pausing') {
+        argv.console.log('The current connection is not pausing.');
+        return;
+    }
+    return argv.client.resume();
+})
+    .command('exit', 'Shutdown all tunnels and exit.', {}, (argv) => {
+    if (argv.client.state === "shutting-down") {
+        argv.console.log('This connection is already shutting down.');
+        return;
+    }
+    return argv.client.shutdown();
+})
+    .command('requests', 'Get the number of active requests.', {}, (argv) => {
+    argv.console.log(argv.client.activeRequests);
+})
     .command('set-weight <weight>', 'Set the weight for load balancing', (cmd) => {
     cmd.positional('weight', {
         describe: 'The weight for the connected client',

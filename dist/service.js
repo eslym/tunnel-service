@@ -297,12 +297,6 @@ _TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMa
                 let rl = readline.createInterface(channel.stdin, channel.stdout);
                 rl.on('line', (line) => {
                     rl.pause();
-                    if (line === 'exit') {
-                        channel.exit(0);
-                        channel.close();
-                        rl.removeAllListeners('line');
-                        rl.close();
-                    }
                     commands_1.commands.parse(line, { client, console: con }, (err, argv, output) => {
                         if (output !== '') {
                             con.error(output);

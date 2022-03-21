@@ -15,7 +15,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 };
 var _DomainMapping_instances, _DomainMapping_mapping, _DomainMapping_resolve;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DomainMapping = exports.selectLessRequest = exports.selectRandomly = exports.promise = void 0;
+exports.wait = exports.DomainMapping = exports.selectLessRequest = exports.selectRandomly = exports.promise = void 0;
 const punycode = require("punycode");
 function promise(value) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -118,5 +118,11 @@ _DomainMapping_mapping = new WeakMap(), _DomainMapping_instances = new WeakSet()
     }
     return res;
 };
+function wait(milliseconds) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((res) => setTimeout(res, milliseconds));
+    });
+}
+exports.wait = wait;
 
 //# sourceMappingURL=utils.js.map

@@ -285,12 +285,6 @@ export class TunnelService {
                     let rl = readline.createInterface(channel.stdin, channel.stdout);
                     rl.on('line', (line) => {
                         rl.pause();
-                        if (line === 'exit') {
-                            channel.exit(0);
-                            channel.close();
-                            rl.removeAllListeners('line');
-                            rl.close();
-                        }
                         commands.parse(line, {client, console: con}, (err, argv, output) => {
                             if (output !== '') {
                                 con.error(output);

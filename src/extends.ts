@@ -1,10 +1,11 @@
 import {Contracts} from "./contracts";
 import {randomUUID} from "crypto";
-import {Connection} from "ssh2";
+import {Connection, ServerChannel} from "ssh2";
 import {Console} from 'console';
 import {Agent} from "http";
 import {HttpAgent, HttpsAgent} from "./agents";
 import Protocol = Contracts.Protocol;
+import {wait} from "./utils";
 
 interface PrivateProperties {
     uuid: string,
@@ -14,6 +15,8 @@ interface PrivateProperties {
     mainIO?: Console,
     pendingLogs: string[],
     weight: number,
+    activeRequests: number,
+    state: 'active' | 'pausing' | 'shutting-down'
 }
 
 const privates = new WeakMap<Connection | TraitConnection, PrivateProperties>();
@@ -21,12 +24,12 @@ const privates = new WeakMap<Connection | TraitConnection, PrivateProperties>();
 export type ClientConnection = Connection & TraitConnection;
 
 class AgentProvider implements Contracts.AgentProvider {
-    activeRequests: number;
     readonly binding: string;
     readonly client: ClientConnection;
     readonly protocol: Contracts.Protocol;
     readonly uuid: string;
     private _weight?: number;
+    readonly activeChannels: Set<ServerChannel>;
 
     get weight(): number{
         if(this.hasOwnProperty('_weight')){
@@ -47,12 +50,31 @@ class AgentProvider implements Contracts.AgentProvider {
         return this.protocol === 'http' ? 80 : 443;
     }
 
+    get activeRequests(): number {
+        return this.client.activeRequests;
+    }
+
+    set activeRequests(requests) {
+        this.client.activeRequests = requests;
+    }
+
+    get state(): 'active' | 'pausing' | 'shutting-down'{
+        return this.client.state;
+    }
+
     getAgent(sourceIp: string, sourcePort: number): Promise<Agent> {
+        if(this.state !== 'active'){
+            return new Promise<Agent>((res, rej)=>{
+                rej(new Error('This provider is not active.'));
+            });
+        }
         return new Promise<Agent>((res, rej)=>{
             this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch)=>{
                 if(err){
                     return rej(err);
                 }
+                this.activeChannels.add(ch);
+                ch.once('close', ()=>this.activeChannels.delete(ch));
                 let claz = this.protocol === 'http' ? HttpAgent : HttpsAgent;
                 res(new claz(ch, this.client, this, {}));
             });
@@ -97,6 +119,67 @@ abstract class TraitConnection implements Contracts.ClientConnection {
         privates.get(this).weight = weight;
     }
 
+    get activeRequests(){
+        return privates.get(this).activeRequests;
+    }
+
+    set activeRequests(requests){
+        privates.get(this).activeRequests = requests;
+    }
+
+    get state(){
+        return privates.get(this).state;
+    }
+
+    async pause(){
+        if(this.state !== 'active'){
+            return;
+        }
+        privates.get(this).state = 'pausing';
+        this.log('Pausing tunnel.', true).catch();
+        let count = 0;
+        while((this.state as string) === 'pausing'){
+            if(this.activeRequests === 0 || count >= 100){
+                break;
+            }
+            count++;
+            await wait(50);
+        }
+        if((this.state as string) !== 'pausing'){
+            return;
+        }
+        for(let agent of this.bindings.values()){
+            for(let ch of agent.activeChannels){
+                ch.close();
+            }
+        }
+    }
+
+    resume(){
+        if(this.state !== 'pausing'){
+            return;
+        }
+        privates.get(this).state = 'active';
+        this.log('Tunnel resumed.', true).catch();
+    }
+
+    async shutdown(){
+        if(this.state === 'shutting-down'){
+            return;
+        }
+        privates.get(this).state = 'shutting-down';
+        this.log('Shutting down tunnel.', true).catch();
+        let count = 0;
+        while (true){
+            if(this.activeRequests === 0 || count >= 100){
+                break;
+            }
+            await wait(50);
+            count++;
+        }
+        (this as any as ClientConnection).end();
+    }
+
     async log(message: string, force?: boolean): Promise<void> {
         let props = privates.get(this);
         if(this.console){
@@ -130,6 +213,7 @@ abstract class TraitConnection implements Contracts.ClientConnection {
             client: this,
             binding, protocol,
             activeRequests: 0,
+            activeChannels: new Set<ServerChannel>(),
         });
     }
 }
@@ -142,6 +226,8 @@ export function extendClient(client: Connection): ClientConnection {
         logging: false,
         weight: 0,
         pendingLogs: [],
+        activeRequests: 0,
+        state: 'active',
     });
     let descriptors = Object.getOwnPropertyDescriptors(TraitConnection.prototype);
     delete descriptors.constructor;

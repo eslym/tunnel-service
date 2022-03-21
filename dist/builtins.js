@@ -205,14 +205,18 @@ class DefaultAgentPool {
     }
     isAvailable(domain) {
         let result = __classPrivateFieldGet(this, _DefaultAgentPool_domains, "f").resolve(domain);
-        return result.found && result.value.size > 0;
+        let sample = Array.from(result.value.values())
+            .filter(p => p.state === 'active');
+        return result.found && sample.length > 0;
     }
     select(domain) {
         let result = __classPrivateFieldGet(this, _DefaultAgentPool_domains, "f").resolve(domain);
         if (!result.found) {
             return false;
         }
-        return __classPrivateFieldGet(this, _DefaultAgentPool_agentSelector, "f").call(this, Array.from(result.value.values()));
+        let sample = Array.from(result.value.values())
+            .filter(p => p.state === 'active');
+        return __classPrivateFieldGet(this, _DefaultAgentPool_agentSelector, "f").call(this, sample);
     }
 }
 exports.DefaultAgentPool = DefaultAgentPool;

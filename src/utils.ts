@@ -123,3 +123,7 @@ export class DomainMapping<T> {
         return res;
     }
 }
+
+export async function wait(milliseconds: number){
+    return new Promise((res)=>setTimeout(res, milliseconds));
+}

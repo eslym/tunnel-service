@@ -26,6 +26,8 @@ export declare namespace SafeWrapped {
         get uuid(): string;
         get user(): Contracts.User;
         get agents(): Contracts.AgentProvider[];
+        get activeRequests(): number;
+        get state(): 'active' | 'pausing' | 'shutting-down';
         log(message: string, force?: boolean): Contracts.AsyncResult<void>;
         isBound(domain: string, protocol: Contracts.Protocol): boolean;
         static wrap(client?: Contracts.ClientConnection): any;
@@ -48,6 +50,7 @@ export declare namespace SafeWrapped {
         get weight(): number;
         get activeRequests(): number;
         get binding(): string;
+        get state(): 'active' | 'pausing' | 'shutting-down';
         getAgent(sourceIp: string, sourcePort: number): Contracts.AsyncResult<Agent>;
         static wrap(agent: Contracts.AgentProvider): any;
     }

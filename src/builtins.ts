@@ -208,7 +208,9 @@ export class DefaultAgentPool implements AgentPool {
 
     isAvailable(domain: string): boolean {
         let result = this.#domains.resolve(domain);
-        return result.found && result.value.size > 0;
+        let sample = Array.from(result.value.values())
+            .filter(p => p.state === 'active');
+        return result.found && sample.length > 0;
     }
 
     select(domain: string): AgentProvider | false {
@@ -216,7 +218,9 @@ export class DefaultAgentPool implements AgentPool {
         if (!result.found) {
             return false;
         }
-        return this.#agentSelector(Array.from(result.value.values()));
+        let sample = Array.from(result.value.values())
+            .filter(p => p.state === 'active');
+        return this.#agentSelector(sample);
     }
 }
 

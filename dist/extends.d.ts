@@ -1,19 +1,22 @@
 /// <reference types="node" />
 import { Contracts } from "./contracts";
-import { Connection } from "ssh2";
+import { Connection, ServerChannel } from "ssh2";
 import { Agent } from "http";
 import Protocol = Contracts.Protocol;
 export declare type ClientConnection = Connection & TraitConnection;
 declare class AgentProvider implements Contracts.AgentProvider {
-    activeRequests: number;
     readonly binding: string;
     readonly client: ClientConnection;
     readonly protocol: Contracts.Protocol;
     readonly uuid: string;
     private _weight?;
+    readonly activeChannels: Set<ServerChannel>;
     get weight(): number;
     set weight(weight: number);
     get port(): number;
+    get activeRequests(): number;
+    set activeRequests(requests: number);
+    get state(): 'active' | 'pausing' | 'shutting-down';
     getAgent(sourceIp: string, sourcePort: number): Promise<Agent>;
 }
 declare abstract class TraitConnection implements Contracts.ClientConnection {
@@ -25,6 +28,12 @@ declare abstract class TraitConnection implements Contracts.ClientConnection {
     set console(console: Console);
     get weight(): number;
     set weight(weight: number);
+    get activeRequests(): number;
+    set activeRequests(requests: number);
+    get state(): "active" | "pausing" | "shutting-down";
+    pause(): Promise<void>;
+    resume(): void;
+    shutdown(): Promise<void>;
     log(message: string, force?: boolean): Promise<void>;
     setLogging(enable: boolean): void;
     isBound(domain: string, protocol: Contracts.Protocol): boolean;

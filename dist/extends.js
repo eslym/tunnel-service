@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.extendClient = void 0;
 const crypto_1 = require("crypto");
 const agents_1 = require("./agents");
+const utils_1 = require("./utils");
 const privates = new WeakMap();
 class AgentProvider {
     get weight() {
@@ -31,12 +32,28 @@ class AgentProvider {
     get port() {
         return this.protocol === 'http' ? 80 : 443;
     }
+    get activeRequests() {
+        return this.client.activeRequests;
+    }
+    set activeRequests(requests) {
+        this.client.activeRequests = requests;
+    }
+    get state() {
+        return this.client.state;
+    }
     getAgent(sourceIp, sourcePort) {
+        if (this.state !== 'active') {
+            return new Promise((res, rej) => {
+                rej(new Error('This provider is not active.'));
+            });
+        }
         return new Promise((res, rej) => {
             this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch) => {
                 if (err) {
                     return rej(err);
                 }
+                this.activeChannels.add(ch);
+                ch.once('close', () => this.activeChannels.delete(ch));
                 let claz = this.protocol === 'http' ? agents_1.HttpAgent : agents_1.HttpsAgent;
                 res(new claz(ch, this.client, this, {}));
             });
@@ -72,6 +89,65 @@ class TraitConnection {
     set weight(weight) {
         privates.get(this).weight = weight;
     }
+    get activeRequests() {
+        return privates.get(this).activeRequests;
+    }
+    set activeRequests(requests) {
+        privates.get(this).activeRequests = requests;
+    }
+    get state() {
+        return privates.get(this).state;
+    }
+    pause() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.state !== 'active') {
+                return;
+            }
+            privates.get(this).state = 'pausing';
+            this.log('Pausing tunnel.', true).catch();
+            let count = 0;
+            while (this.state === 'pausing') {
+                if (this.activeRequests === 0 || count >= 100) {
+                    break;
+                }
+                count++;
+                yield (0, utils_1.wait)(50);
+            }
+            if (this.state !== 'pausing') {
+                return;
+            }
+            for (let agent of this.bindings.values()) {
+                for (let ch of agent.activeChannels) {
+                    ch.close();
+                }
+            }
+        });
+    }
+    resume() {
+        if (this.state !== 'pausing') {
+            return;
+        }
+        privates.get(this).state = 'active';
+        this.log('Tunnel resumed.', true).catch();
+    }
+    shutdown() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.state === 'shutting-down') {
+                return;
+            }
+            privates.get(this).state = 'shutting-down';
+            this.log('Shutting down tunnel.', true).catch();
+            let count = 0;
+            while (true) {
+                if (this.activeRequests === 0 || count >= 100) {
+                    break;
+                }
+                yield (0, utils_1.wait)(50);
+                count++;
+            }
+            this.end();
+        });
+    }
     log(message, force) {
         return __awaiter(this, void 0, void 0, function* () {
             let props = privates.get(this);
@@ -104,6 +180,7 @@ class TraitConnection {
             client: this,
             binding, protocol,
             activeRequests: 0,
+            activeChannels: new Set(),
         });
     }
 }
@@ -115,6 +192,8 @@ function extendClient(client) {
         logging: false,
         weight: 0,
         pendingLogs: [],
+        activeRequests: 0,
+        state: 'active',
     });
     let descriptors = Object.getOwnPropertyDescriptors(TraitConnection.prototype);
     delete descriptors.constructor;
