@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Something like cloudflare tunnel but using ssh",
   "main": "dist/index.js",
+  "keywords": [
+    "ssh", "http", "proxy", "express", "forward", "tunnel"
+  ],
   "bin": {
     "tunnel-service": "dist/cli.js"
   },
