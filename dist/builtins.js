@@ -257,21 +257,30 @@ class HttpCatsErrorResponseHandler {
     }
     badGateway(request, response) {
         return this.handle(502).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(502)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="502 Bad Gateway.jpg"`);
             incoming.pipe(response);
         });
     }
     gatewayTimeout(request, response) {
         return this.handle(504).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(504)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="504 Gateway Timeout.jpg"`);
             incoming.pipe(response);
         });
     }
     serviceUnavailable(request, response) {
         return this.handle(503).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(503)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="503 Service Unavailable.jpg"`);
             incoming.pipe(response);
         });

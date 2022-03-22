@@ -9,6 +9,7 @@ import {DomainMapping} from "./utils";
 import {Request, Response} from "express";
 import * as util from "util";
 import * as https from "https";
+import {IncomingMessage} from "http";
 import JSON5 = require('json5');
 import YAML = require('yaml');
 import bcrypt = require('bcrypt');
@@ -20,7 +21,6 @@ import Protocol = Contracts.Protocol;
 import AgentProvider = Contracts.AgentProvider;
 import AgentPool = Contracts.AgentPool;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
-import {IncomingMessage} from "http";
 
 const ConfigLoader: Dict<(path: string) => Promise<UserConfig>> = {};
 
@@ -264,7 +264,10 @@ export class HttpCatsErrorResponseHandler implements ErrorResponseHandler {
 
     badGateway(request: Request, response: Response): Promise<void> {
         return this.handle(502).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(502)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="502 Bad Gateway.jpg"`);
             incoming.pipe(response);
         });
@@ -272,7 +275,10 @@ export class HttpCatsErrorResponseHandler implements ErrorResponseHandler {
 
     gatewayTimeout(request: Request, response: Response): Promise<void> {
         return this.handle(504).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(504)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="504 Gateway Timeout.jpg"`);
             incoming.pipe(response);
         });
@@ -280,7 +286,10 @@ export class HttpCatsErrorResponseHandler implements ErrorResponseHandler {
 
     serviceUnavailable(request: Request, response: Response): Promise<void> {
         return this.handle(503).then((incoming) => {
-            response.header('content-type', incoming.headers['content-type'])
+            response.status(503)
+                .header('connection', 'close')
+                .header('content-type', incoming.headers['content-type'])
+                .header('content-length', incoming.headers['content-length'])
                 .header('content-disposition', `inline; filename="503 Service Unavailable.jpg"`);
             incoming.pipe(response);
         });

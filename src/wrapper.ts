@@ -6,14 +6,14 @@ import {Request, Response} from "express";
 
 const wrapped = new WeakMap();
 
-function wrap<T>(target: any, type: new (v: any)=>T){
-    if(typeof target !== 'object'){
+function wrap<T>(target: any, type: new (v: any) => T) {
+    if (typeof target !== 'object') {
         return target
     }
-    if(target instanceof type){
+    if (target instanceof type) {
         return target;
     }
-    if(!wrapped.has(target)){
+    if (!wrapped.has(target)) {
         wrapped.set(target, new type(target));
     }
     return wrapped.get(target);
@@ -28,7 +28,7 @@ export namespace SafeWrapped {
     import P = Contracts.AsyncResult;
     import Protocol = Contracts.Protocol;
 
-    export class User implements Contracts.User{
+    export class User implements Contracts.User {
         readonly #user: Contracts.User;
 
         constructor(user: Contracts.User) {
@@ -37,6 +37,10 @@ export namespace SafeWrapped {
 
         get username(): string {
             return this.#user.username;
+        }
+
+        static wrap(user?: Contracts.User) {
+            return wrap(user, User);
         }
 
         authKey(context: PublicKeyAuthContext): P<boolean> {
@@ -50,13 +54,9 @@ export namespace SafeWrapped {
         canBind(domain: string, protocol: Protocol): P<boolean> {
             return this.#user.canBind(domain, protocol);
         }
-
-        static wrap(user?: Contracts.User){
-            return wrap(user, User);
-        }
     }
 
-    export class ClientConnection implements Contracts.ClientConnection{
+    export class ClientConnection implements Contracts.ClientConnection {
         readonly #client: Contracts.ClientConnection;
 
         constructor(client: Contracts.ClientConnection) {
@@ -71,7 +71,7 @@ export namespace SafeWrapped {
             return User.wrap(this.#client.user);
         }
 
-        get authenticatedContext(): AuthContext{
+        get authenticatedContext(): AuthContext {
             return this.#client.authenticatedContext;
         }
 
@@ -83,8 +83,12 @@ export namespace SafeWrapped {
             return this.#client.activeRequests;
         }
 
-        get state(): 'active' | 'pausing' | 'shutting-down'{
+        get state(): 'active' | 'pausing' | 'shutting-down' {
             return this.#client.state;
+        }
+
+        static wrap(client?: Contracts.ClientConnection) {
+            return wrap(client, ClientConnection);
         }
 
         log(message: string, force?: boolean): Contracts.AsyncResult<void> {
@@ -93,10 +97,6 @@ export namespace SafeWrapped {
 
         isBound(domain: string, protocol: Contracts.Protocol): boolean {
             return this.#client.isBound(domain, protocol);
-        }
-
-        static wrap(client?: Contracts.ClientConnection){
-            return wrap(client, ClientConnection);
         }
     }
 
@@ -107,27 +107,27 @@ export namespace SafeWrapped {
             this.#provider = provider;
         }
 
+        static wrap(provider?: Contracts.UserProvider) {
+            return wrap(provider, UserProvider);
+        }
+
         findUser(username: string, client: Contracts.ClientConnection): Contracts.AsyncResult<Contracts.User | false> {
             return promise(this.#provider.findUser(username, client)).then(User.wrap);
         }
 
-        off(event: 'user-deactivated', listener: (username: string)=>void): this {
+        off(event: 'user-deactivated', listener: (username: string) => void): this {
             this.#provider.off(event, listener);
             return this;
         }
 
-        on(event: 'user-deactivated', listener: (username: string)=>void): this {
+        on(event: 'user-deactivated', listener: (username: string) => void): this {
             this.#provider.on(event, listener);
             return this;
         }
 
-        once(event: 'user-deactivated', listener: (username: string)=>void): this {
+        once(event: 'user-deactivated', listener: (username: string) => void): this {
             this.#provider.once(event, listener);
             return this;
-        }
-
-        static wrap(provider?: Contracts.UserProvider){
-            return wrap(provider, UserProvider);
         }
     }
 
@@ -138,11 +138,11 @@ export namespace SafeWrapped {
             this.#agent = agent;
         }
 
-        get uuid(): string{
+        get uuid(): string {
             return this.#agent.uuid;
         }
 
-        get client(): Contracts.ClientConnection{
+        get client(): Contracts.ClientConnection {
             return ClientConnection.wrap(this.#agent.client);
         }
 
@@ -162,16 +162,16 @@ export namespace SafeWrapped {
             return this.#agent.binding;
         }
 
-        get state(): 'active' | 'pausing' | 'shutting-down'{
+        get state(): 'active' | 'pausing' | 'shutting-down' {
             return this.#agent.state;
+        }
+
+        static wrap(agent: Contracts.AgentProvider) {
+            return wrap(agent, AgentProvider);
         }
 
         getAgent(sourceIp: string, sourcePort: number): Contracts.AsyncResult<Agent> {
             return this.#agent.getAgent(sourceIp, sourcePort);
-        }
-
-        static wrap(agent: Contracts.AgentProvider){
-            return wrap(agent, AgentProvider);
         }
     }
 
@@ -180,6 +180,10 @@ export namespace SafeWrapped {
 
         constructor(pool: Contracts.AgentPool) {
             this.#pool = pool;
+        }
+
+        static wrap(pool: Contracts.AgentPool) {
+            return wrap(pool, AgentPool);
         }
 
         attach(agent: Contracts.AgentProvider): Contracts.AsyncResult<void> {
@@ -204,10 +208,6 @@ export namespace SafeWrapped {
         isAvailable(domain: string): Contracts.AsyncResult<boolean> {
             return this.#pool.isAvailable(domain);
         }
-
-        static wrap(pool: Contracts.AgentPool){
-            return wrap(pool, AgentPool);
-        }
     }
 
     export class ErrorResponseHandler implements Contracts.ErrorResponseHandler {
@@ -215,6 +215,10 @@ export namespace SafeWrapped {
 
         constructor(handler: Contracts.ErrorResponseHandler) {
             this.#handler = handler;
+        }
+
+        static wrap(handler: Contracts.ErrorResponseHandler) {
+            return wrap(handler, ErrorResponseHandler);
         }
 
         badGateway(request: Request, response: Response): Contracts.AsyncResult<void> {
@@ -227,10 +231,6 @@ export namespace SafeWrapped {
 
         gatewayTimeout(request: Request, response: Response): Contracts.AsyncResult<void> {
             return this.#handler.gatewayTimeout(request, response);
-        }
-
-        static wrap(handler: Contracts.ErrorResponseHandler){
-            return wrap(handler, ErrorResponseHandler);
         }
     }
 }

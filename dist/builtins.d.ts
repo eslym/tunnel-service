@@ -2,11 +2,11 @@
 import { Contracts } from "./contracts";
 import { EventEmitter } from "events";
 import { Request, Response } from "express";
+import { IncomingMessage } from "http";
 import UserProvider = Contracts.UserProvider;
 import AgentProvider = Contracts.AgentProvider;
 import AgentPool = Contracts.AgentPool;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
-import { IncomingMessage } from "http";
 export declare class FileUserProvider extends EventEmitter implements UserProvider {
     #private;
     constructor(directory: string);

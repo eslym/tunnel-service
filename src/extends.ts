@@ -4,9 +4,9 @@ import {AuthContext, Connection, ServerChannel} from "ssh2";
 import {Console} from 'console';
 import {Agent} from "http";
 import {HttpAgent, HttpsAgent} from "./agents";
-import Protocol = Contracts.Protocol;
 import {wait} from "./utils";
 import {TimeoutError} from "./errors";
+import Protocol = Contracts.Protocol;
 
 interface PrivateProperties {
     uuid: string,
@@ -30,26 +30,27 @@ class AgentProvider implements Contracts.AgentProvider {
     readonly client: ClientConnection;
     readonly protocol: Contracts.Protocol;
     readonly uuid: string;
-    private _weight?: number;
     readonly activeChannels: Set<ServerChannel>;
     readonly timeout: number;
 
-    get weight(): number{
-        if(this.hasOwnProperty('_weight')){
+    private _weight?: number;
+
+    get weight(): number {
+        if (this.hasOwnProperty('_weight')) {
             return this._weight;
         }
         return this.client.weight;
     }
 
-    set weight(weight: number){
-        if(!Number.isNaN(weight) && Number.isFinite(weight) && weight > 0){
+    set weight(weight: number) {
+        if (!Number.isNaN(weight) && Number.isFinite(weight) && weight > 0) {
             this._weight = weight;
         } else {
             delete this._weight;
         }
     }
 
-    get port(): number{
+    get port(): number {
         return this.protocol === 'http' ? 80 : 443;
     }
 
@@ -61,44 +62,44 @@ class AgentProvider implements Contracts.AgentProvider {
         this.client.activeRequests = requests;
     }
 
-    get state(): 'active' | 'pausing' | 'shutting-down'{
+    get state(): 'active' | 'pausing' | 'shutting-down' {
         return this.client.state;
     }
 
     getAgent(sourceIp: string, sourcePort: number): Promise<Agent> {
-        if(this.state !== 'active'){
-            return new Promise<Agent>((res, rej)=>{
+        if (this.state !== 'active') {
+            return new Promise<Agent>((res, rej) => {
                 rej(new Error('This provider is not active.'));
             });
         }
-        return new Promise<Agent>((res, rej)=>{
+        return new Promise<Agent>((res, rej) => {
             let before = new Date();
-            let to = setTimeout(()=>{
+            let to = setTimeout(() => {
                 rej(new TimeoutError());
                 to = undefined;
             }, this.timeout);
-            this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch)=>{
-                if(!to) {
+            this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch) => {
+                if (!to) {
                     // If already timeout close the channel
-                    if(!err) ch.close();
+                    if (!err) ch.close();
                     return;
                 }
                 clearTimeout(to);
-                if(err){
+                if (err) {
                     return rej(err);
                 }
                 let diff = (new Date() as any) - (before as any);
-                let timeout = ()=>{
+                let timeout = () => {
                     ch.emit('error', new TimeoutError());
                     ch.close();
                 };
                 to = setTimeout(timeout, this.timeout - diff);
                 this.activeChannels.add(ch);
-                ch.once('close', ()=>{
+                ch.once('close', () => {
                     this.activeChannels.delete(ch);
                     clearTimeout(to);
                 });
-                ch.on('data', ()=>{
+                ch.on('data', () => {
                     clearTimeout(to);
                     to = setTimeout(timeout, this.timeout);
                 });
@@ -110,7 +111,7 @@ class AgentProvider implements Contracts.AgentProvider {
 }
 
 abstract class TraitConnection implements Contracts.ClientConnection {
-    get uuid(): string{
+    get uuid(): string {
         return privates.get(this).uuid;
     }
 
@@ -122,11 +123,11 @@ abstract class TraitConnection implements Contracts.ClientConnection {
         return privates.get(this).user;
     }
 
-    get authenticatedContext(): AuthContext{
+    get authenticatedContext(): AuthContext {
         return privates.get(this).authenticatedContext;
     }
 
-    set authenticatedContext(context){
+    set authenticatedContext(context) {
         privates.get(this).authenticatedContext = context;
     }
 
@@ -138,75 +139,75 @@ abstract class TraitConnection implements Contracts.ClientConnection {
         return privates.get(this).mainIO;
     }
 
-    set console(console: Console){
+    set console(console: Console) {
         let props = privates.get(this);
         props.mainIO = console;
-        while (props.pendingLogs.length){
+        while (props.pendingLogs.length) {
             console.log(props.pendingLogs.shift());
         }
     }
 
-    get weight(){
+    get weight() {
         return privates.get(this).weight;
     }
 
-    set weight(weight: number){
+    set weight(weight: number) {
         privates.get(this).weight = weight;
     }
 
-    get activeRequests(){
+    get activeRequests() {
         return privates.get(this).activeRequests;
     }
 
-    set activeRequests(requests){
+    set activeRequests(requests) {
         privates.get(this).activeRequests = requests;
     }
 
-    get state(){
+    get state() {
         return privates.get(this).state;
     }
 
-    async pause(){
-        if(this.state !== 'active'){
+    async pause() {
+        if (this.state !== 'active') {
             return;
         }
         privates.get(this).state = 'pausing';
         this.log('Pausing tunnel.', true).catch();
         let count = 0;
-        while((this.state as string) === 'pausing'){
-            if(this.activeRequests === 0 || count >= 100){
+        while ((this.state as string) === 'pausing') {
+            if (this.activeRequests === 0 || count >= 100) {
                 break;
             }
             count++;
             await wait(50);
         }
-        if((this.state as string) !== 'pausing'){
+        if ((this.state as string) !== 'pausing') {
             return;
         }
-        for(let agent of this.bindings.values()){
-            for(let ch of agent.activeChannels){
+        for (let agent of this.bindings.values()) {
+            for (let ch of agent.activeChannels) {
                 ch.close();
             }
         }
     }
 
-    resume(){
-        if(this.state !== 'pausing'){
+    resume() {
+        if (this.state !== 'pausing') {
             return;
         }
         privates.get(this).state = 'active';
         this.log('Tunnel resumed.', true).catch();
     }
 
-    async shutdown(){
-        if(this.state === 'shutting-down'){
+    async shutdown() {
+        if (this.state === 'shutting-down') {
             return;
         }
         privates.get(this).state = 'shutting-down';
         this.log('Shutting down tunnel.', true).catch();
         let count = 0;
-        while (true){
-            if(this.activeRequests === 0 || count >= 100){
+        while (true) {
+            if (this.activeRequests === 0 || count >= 100) {
                 break;
             }
             await wait(50);
@@ -217,18 +218,18 @@ abstract class TraitConnection implements Contracts.ClientConnection {
 
     async log(message: string, force?: boolean): Promise<void> {
         let props = privates.get(this);
-        if(this.console){
-            if(force || props.logging){
+        if (this.console) {
+            if (force || props.logging) {
                 this.console.log(message);
             }
         } else {
-            if(force || props.logging){
+            if (force || props.logging) {
                 props.pendingLogs.push(message);
             }
         }
     }
 
-    setLogging(enable: boolean){
+    setLogging(enable: boolean) {
         privates.get(this).logging = enable;
     }
 
@@ -237,12 +238,12 @@ abstract class TraitConnection implements Contracts.ClientConnection {
             this.bindings[domain].protocol === protocol;
     }
 
-    setUser(user: Contracts.User): this{
+    setUser(user: Contracts.User): this {
         privates.get(this).user = user;
         return this;
     }
 
-    createAgentProvider(binding: string, protocol: Protocol, timeout: number): AgentProvider{
+    createAgentProvider(binding: string, protocol: Protocol, timeout: number): AgentProvider {
         return Object.assign(Object.create(AgentProvider.prototype), {
             uuid: randomUUID(),
             client: this,

@@ -10,6 +10,9 @@ import {Console} from "console";
 import * as readline from "readline";
 import {commands} from "./commands";
 import {createResponse, mockSocket, promise} from "./utils";
+import * as net from "net";
+import {logger, Logger} from "@eslym/logger";
+import {TimeoutError} from "./errors";
 import express = require('express');
 import HttpProxy = require('http-proxy');
 import ip = require('ip');
@@ -18,9 +21,6 @@ import AgentPool = Contracts.AgentPool;
 import AgentProvider = Contracts.AgentProvider;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
 import Protocol = Contracts.Protocol;
-import * as net from "net";
-import {logger, Logger} from "@eslym/logger";
-import {TimeoutError} from "./errors";
 
 export interface LaunchOption {
     httpPort: number;
@@ -43,29 +43,13 @@ export class TunnelService {
     #option: LaunchOption;
     #userClients: Map<string, Set<ClientConnection>>;
 
-    get apiRoutes(){
-        return this.#apiRoutes;
-    }
-
-    get express(){
-        return this.#express;
-    }
-
-    get sshServer(){
-        return this.#sshServer;
-    }
-
-    get httpServer(){
-        return this.#httpServer;
-    }
-
     constructor(option: LaunchOption) {
         this.#userClients = new Map<string, Set<ClientConnection>>();
         this.#option = Object.create(option);
         this.#option.userProvider = SafeWrapped.UserProvider.wrap(option.userProvider);
         this.#option.agentPool = SafeWrapped.AgentPool.wrap(option.agentPool);
         this.#option.errorResHandler = SafeWrapped.ErrorResponseHandler.wrap(option.errorResHandler);
-        if(!this.#option.logger) {
+        if (!this.#option.logger) {
             this.#option.logger = logger;
         }
         this.#httpProxy = new HttpProxy();
@@ -75,7 +59,7 @@ export class TunnelService {
         this.#httpServer = new http.Server(this.#express);
         this.#httpServer.on('upgrade', async (req: Request, socket, head) => {
             Object.setPrototypeOf(req, Object.create(this.#express.request));
-            const res = ()=>createResponse(req, this.#express.response, mockSocket(socket));
+            const res = () => createResponse(req, this.#express.response, mockSocket(socket));
             try {
                 // Check is the hostname is ip address
                 if (net.isIP(req.hostname)) {
@@ -91,13 +75,13 @@ export class TunnelService {
                 let options = await TunnelService.#proxyOptions(req, agent);
                 let write = socket._write;
                 // TODO: Handle the websocket error more properly, might need to make own proxy
-                socket._write = (...args)=>{
+                socket._write = (...args) => {
                     socket._write = write;
                     return write.apply(socket, args);
                 }
                 this.#httpProxy.ws(req, socket, head, options, (err) => {
-                    if(socket._write !== write){
-                        if(err instanceof TimeoutError){
+                    if (socket._write !== write) {
+                        if (err instanceof TimeoutError) {
                             return this.#option.errorResHandler.gatewayTimeout(req, res());
                         }
                         this.#option.errorResHandler.badGateway(req, res());
@@ -106,10 +90,26 @@ export class TunnelService {
             } catch (e) {
                 return this.#option.errorResHandler.badGateway(req, res());
             }
-        }).on('listening', ()=>{
+        }).on('listening', () => {
             let addr = this.#httpServer.address() as any;
             this.#option.logger.info(`HTTP Server Listening on ${addr.port}`);
         });
+    }
+
+    get apiRoutes() {
+        return this.#apiRoutes;
+    }
+
+    get express() {
+        return this.#express;
+    }
+
+    get sshServer() {
+        return this.#sshServer;
+    }
+
+    get httpServer() {
+        return this.#httpServer;
     }
 
     static async #proxyOptions(req: Request, agent: AgentProvider, protocol: 'http' | 'ws' = 'http'): Promise<ProxyOption> {
@@ -128,8 +128,24 @@ export class TunnelService {
         }
     }
 
+    start() {
+        this.#option.userProvider.on('user-deactivated', async (username) => {
+            if (this.#userClients.has(username)) {
+                let clients = this.#userClients.get(username);
+                for (let client of clients) {
+                    await this.#option.agentPool.detachAll(client);
+                    client.end();
+                }
+            }
+        });
+        this.#httpServer.listen(this.#option.httpPort);
+        this.#sshServer.listen(this.#option.sshPort);
+    }
+
     #setupExpress() {
         let app = express();
+
+        app.disable('x-powered-by');
 
         app.set('trust proxy', this.#option.trustedProxy);
 
@@ -157,7 +173,7 @@ export class TunnelService {
                 let options = await TunnelService.#proxyOptions(req, agent);
                 this.#httpProxy.web(req, res, options, (err) => {
                     if (!res.headersSent) {
-                        if(err instanceof TimeoutError){
+                        if (err instanceof TimeoutError) {
                             return this.#option.errorResHandler.gatewayTimeout(req, res);
                         }
                         return this.#option.errorResHandler.badGateway(req, res);
@@ -168,16 +184,16 @@ export class TunnelService {
             }
         });
 
-        this.#apiRoutes.get('/caddy-on-demand-tls', (req, res)=>{
-            let fail = ()=>{
+        this.#apiRoutes.get('/caddy-on-demand-tls', (req, res) => {
+            let fail = () => {
                 res.status(403)
                     .header('Content-Type', 'text/plain')
                     .send('403 Forbidden');
             }
-            if(typeof req.query.domain !== 'string'){
+            if (typeof req.query.domain !== 'string') {
                 return fail();
             }
-            if(!this.#option.agentPool.isAvailable(req.query.domain)){
+            if (!this.#option.agentPool.isAvailable(req.query.domain)) {
                 return fail();
             }
             res.status(200)
@@ -213,7 +229,7 @@ export class TunnelService {
                     this.#option.logger.log(`${client.uuid} authenticated as ${context.username} using ${context.method}`);
                     client.setUser(SafeWrapped.User.wrap(user));
                     client.authenticatedContext = context;
-                    if(!this.#userClients.has(user.username)){
+                    if (!this.#userClients.has(user.username)) {
                         this.#userClients.set(user.username, new Set<ClientConnection>());
                     }
                     this.#userClients.get(user.username).add(client);
@@ -234,7 +250,7 @@ export class TunnelService {
                                 return reject();
                             }
                             let protocol: Protocol = info.bindPort === 80 ? 'http' : 'https';
-                            if (! await client.user.canBind(info.bindAddr, protocol)) {
+                            if (!await client.user.canBind(info.bindAddr, protocol)) {
                                 client.log(`The current user is not allowed to bind to ${info.bindAddr}:${info.bindPort}`, true).catch();
                                 return reject();
                             }
@@ -255,7 +271,7 @@ export class TunnelService {
                             if (client.bindings.has(info.bindAddr)) {
                                 let provider = client.bindings.get(info.bindAddr);
                                 let port = provider.protocol === 'http' ? 80 : 443;
-                                if(port !== info.bindPort){
+                                if (port !== info.bindPort) {
                                     client.log(`The current client is not bounded to ${info.bindAddr}:${info.bindPort}`, true).catch();
                                     return reject();
                                 }
@@ -312,28 +328,14 @@ export class TunnelService {
                         });
                     });
                 });
-            })).on('close', ()=>{
+            })).on('close', () => {
                 this.#option.agentPool.detachAll(client);
                 this.#option.logger.log(`${client.uuid} disconnected.`);
                 this.#userClients.get(client.user.username).delete(client);
             });
-        }).on('listening', ()=>{
+        }).on('listening', () => {
             let addr = this.#sshServer.address();
             this.#option.logger.info(`SSH Server Listening on ${addr.port}`);
         });
-    }
-
-    start() {
-        this.#option.userProvider.on('user-deactivated', async (username) => {
-            if (this.#userClients.has(username)) {
-                let clients = this.#userClients.get(username);
-                for(let client of clients){
-                    await this.#option.agentPool.detachAll(client);
-                    client.end();
-                }
-            }
-        });
-        this.#httpServer.listen(this.#option.httpPort);
-        this.#sshServer.listen(this.#option.sshPort);
     }
 }

@@ -42,6 +42,9 @@ var SafeWrapped;
         get username() {
             return __classPrivateFieldGet(this, _User_user, "f").username;
         }
+        static wrap(user) {
+            return wrap(user, User);
+        }
         authKey(context) {
             return __classPrivateFieldGet(this, _User_user, "f").authKey(context);
         }
@@ -50,9 +53,6 @@ var SafeWrapped;
         }
         canBind(domain, protocol) {
             return __classPrivateFieldGet(this, _User_user, "f").canBind(domain, protocol);
-        }
-        static wrap(user) {
-            return wrap(user, User);
         }
     }
     _User_user = new WeakMap();
@@ -80,14 +80,14 @@ var SafeWrapped;
         get state() {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").state;
         }
+        static wrap(client) {
+            return wrap(client, ClientConnection);
+        }
         log(message, force) {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").log(message, force);
         }
         isBound(domain, protocol) {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").isBound(domain, protocol);
-        }
-        static wrap(client) {
-            return wrap(client, ClientConnection);
         }
     }
     _ClientConnection_client = new WeakMap();
@@ -96,6 +96,9 @@ var SafeWrapped;
         constructor(provider) {
             _UserProvider_provider.set(this, void 0);
             __classPrivateFieldSet(this, _UserProvider_provider, provider, "f");
+        }
+        static wrap(provider) {
+            return wrap(provider, UserProvider);
         }
         findUser(username, client) {
             return (0, utils_1.promise)(__classPrivateFieldGet(this, _UserProvider_provider, "f").findUser(username, client)).then(User.wrap);
@@ -111,9 +114,6 @@ var SafeWrapped;
         once(event, listener) {
             __classPrivateFieldGet(this, _UserProvider_provider, "f").once(event, listener);
             return this;
-        }
-        static wrap(provider) {
-            return wrap(provider, UserProvider);
         }
     }
     _UserProvider_provider = new WeakMap();
@@ -144,11 +144,11 @@ var SafeWrapped;
         get state() {
             return __classPrivateFieldGet(this, _AgentProvider_agent, "f").state;
         }
-        getAgent(sourceIp, sourcePort) {
-            return __classPrivateFieldGet(this, _AgentProvider_agent, "f").getAgent(sourceIp, sourcePort);
-        }
         static wrap(agent) {
             return wrap(agent, AgentProvider);
+        }
+        getAgent(sourceIp, sourcePort) {
+            return __classPrivateFieldGet(this, _AgentProvider_agent, "f").getAgent(sourceIp, sourcePort);
         }
     }
     _AgentProvider_agent = new WeakMap();
@@ -157,6 +157,9 @@ var SafeWrapped;
         constructor(pool) {
             _AgentPool_pool.set(this, void 0);
             __classPrivateFieldSet(this, _AgentPool_pool, pool, "f");
+        }
+        static wrap(pool) {
+            return wrap(pool, AgentPool);
         }
         attach(agent) {
             let pool = __classPrivateFieldGet(this, _AgentPool_pool, "f");
@@ -176,9 +179,6 @@ var SafeWrapped;
         isAvailable(domain) {
             return __classPrivateFieldGet(this, _AgentPool_pool, "f").isAvailable(domain);
         }
-        static wrap(pool) {
-            return wrap(pool, AgentPool);
-        }
     }
     _AgentPool_pool = new WeakMap();
     SafeWrapped.AgentPool = AgentPool;
@@ -186,6 +186,9 @@ var SafeWrapped;
         constructor(handler) {
             _ErrorResponseHandler_handler.set(this, void 0);
             __classPrivateFieldSet(this, _ErrorResponseHandler_handler, handler, "f");
+        }
+        static wrap(handler) {
+            return wrap(handler, ErrorResponseHandler);
         }
         badGateway(request, response) {
             return __classPrivateFieldGet(this, _ErrorResponseHandler_handler, "f").badGateway(request, response);
@@ -195,9 +198,6 @@ var SafeWrapped;
         }
         gatewayTimeout(request, response) {
             return __classPrivateFieldGet(this, _ErrorResponseHandler_handler, "f").gatewayTimeout(request, response);
-        }
-        static wrap(handler) {
-            return wrap(handler, ErrorResponseHandler);
         }
     }
     _ErrorResponseHandler_handler = new WeakMap();

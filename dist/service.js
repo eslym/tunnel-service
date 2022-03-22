@@ -31,12 +31,12 @@ const console_1 = require("console");
 const readline = require("readline");
 const commands_1 = require("./commands");
 const utils_1 = require("./utils");
-const express = require("express");
-const HttpProxy = require("http-proxy");
-const ip = require("ip");
 const net = require("net");
 const logger_1 = require("@eslym/logger");
 const errors_1 = require("./errors");
+const express = require("express");
+const HttpProxy = require("http-proxy");
+const ip = require("ip");
 class TunnelService {
     constructor(option) {
         _TunnelService_instances.add(this);
@@ -145,6 +145,7 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
     });
 }, _TunnelService_setupExpress = function _TunnelService_setupExpress() {
     let app = express();
+    app.disable('x-powered-by');
     app.set('trust proxy', __classPrivateFieldGet(this, _TunnelService_option, "f").trustedProxy);
     app.use((req, res, next) => __awaiter(this, void 0, void 0, function* () {
         try {

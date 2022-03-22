@@ -25,7 +25,7 @@ interface CliOptions {
 }
 
 // This is the only way to keep multiple instance of yargs for different purpose
-(new (yargs as any)() as Argv).command('$0', 'Start a tunnel server', (cmd)=>{
+(new (yargs as any)() as Argv).command('$0', 'Start a tunnel server', (cmd) => {
     cmd.option('httpPort', {
         describe: 'The port of the HTTP reverse proxy listening',
         alias: ['H', 'http'],
@@ -67,12 +67,12 @@ interface CliOptions {
         .demandOption(['key', 'auth'])
         .default('httpPort', 0)
         .default('sshPort', 0);
-}, (args: ArgumentsCamelCase<CliOptions>)=>{
-    if(!fs.existsSync(args.key)){
+}, (args: ArgumentsCamelCase<CliOptions>) => {
+    if (!fs.existsSync(args.key)) {
         console.error(`SSH Server key not exists: ${args.key}`);
         return;
     }
-    if(!fs.existsSync(args.auth)){
+    if (!fs.existsSync(args.auth)) {
         console.error(`User configuration folder not exists: ${args.key}`);
         return;
     }
@@ -88,7 +88,7 @@ interface CliOptions {
     };
     let service = new TunnelService(options);
     service.start();
-}, [(argv: ArgumentsCamelCase<CliOptions>)=>{
+}, [(argv: ArgumentsCamelCase<CliOptions>) => {
     argv.key = path.resolve(argv.key);
     argv.auth = path.resolve(argv.auth);
 }]).parse(process.argv);

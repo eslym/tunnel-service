@@ -1,7 +1,7 @@
 import {AuthContext, PublicKeyAuthContext} from "ssh2";
 import {Agent} from "http";
-import Dict = NodeJS.Dict;
 import {Request, Response} from 'express';
+import Dict = NodeJS.Dict;
 
 /**
  * API for customization.
@@ -11,9 +11,11 @@ export namespace Contracts {
     export type AsyncResult<T> = Promise<T> | T;
     export type Protocol = 'http' | 'https';
 
-    export interface Emitter<T extends Dict<(...args: any[])=>void>> {
+    export interface Emitter<T extends Dict<(...args: any[]) => void>> {
         on<E extends keyof T>(event: E, listener: T[E]): this;
+
         once<E extends keyof T>(event: E, listener: T[E]): this;
+
         off<E extends keyof T>(event: E, listener: T[E]): this;
     }
 
@@ -97,9 +99,8 @@ export namespace Contracts {
      * The interface which provide user
      */
     export interface UserProvider extends Emitter<{
-        'user-deactivated': (username: string)=>void;
-    }>
-    {
+        'user-deactivated': (username: string) => void;
+    }> {
         /**
          * Find user by username
          * @param username the username

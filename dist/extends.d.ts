@@ -9,9 +9,9 @@ declare class AgentProvider implements Contracts.AgentProvider {
     readonly client: ClientConnection;
     readonly protocol: Contracts.Protocol;
     readonly uuid: string;
-    private _weight?;
     readonly activeChannels: Set<ServerChannel>;
     readonly timeout: number;
+    private _weight?;
     get weight(): number;
     set weight(weight: number);
     get port(): number;

@@ -4,10 +4,10 @@ import { Buffer } from "buffer";
 import { Contracts } from "./contracts";
 import { Express, Router } from "express";
 import * as http from "http";
+import { Logger } from "@eslym/logger";
 import UserProvider = Contracts.UserProvider;
 import AgentPool = Contracts.AgentPool;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
-import { Logger } from "@eslym/logger";
 export interface LaunchOption {
     httpPort: number;
     sshPort: number;
@@ -21,10 +21,10 @@ export interface LaunchOption {
 }
 export declare class TunnelService {
     #private;
+    constructor(option: LaunchOption);
     get apiRoutes(): Router;
     get express(): Express;
     get sshServer(): Server;
     get httpServer(): http.Server;
-    constructor(option: LaunchOption);
     start(): void;
 }

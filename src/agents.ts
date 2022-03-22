@@ -13,10 +13,11 @@ interface BindingInfo {
 
 // code from ssh2
 
-export class HttpAgent extends Agent{
+export class HttpAgent extends Agent {
     readonly #channel: ServerChannel;
     readonly #client: ClientConnection;
     readonly #info: BindingInfo;
+
     constructor(channel: ServerChannel, client: ClientConnection, info: BindingInfo, options: AgentOptions) {
         super(options);
         this.#channel = channel;
@@ -24,11 +25,11 @@ export class HttpAgent extends Agent{
         this.#info = info;
     }
 
-    public createConnection(options: AgentOptions, callback: (err, stream)=>void){
-        this.#info.activeRequests ++;
+    public createConnection(options: AgentOptions, callback: (err, stream) => void) {
+        this.#info.activeRequests++;
         let sock = mockSocket(this.#channel);
         (sock as any).destroySoon = sock.destroy;
-        this.#channel.on('close', ()=>this.#info.activeRequests--);
+        this.#channel.on('close', () => this.#info.activeRequests--);
         callback(null, sock);
     }
 }
@@ -37,6 +38,7 @@ export class HttpsAgent extends https.Agent {
     readonly #channel: ServerChannel;
     readonly #client: ClientConnection;
     readonly #info: BindingInfo;
+
     constructor(channel: ServerChannel, client: ClientConnection, info: BindingInfo, options: AgentOptions) {
         super(options);
         this.#channel = channel;
@@ -44,7 +46,7 @@ export class HttpsAgent extends https.Agent {
         this.#info = info;
     }
 
-    public createConnection(options: AgentOptions, callback: (err, stream)=>void){
+    public createConnection(options: AgentOptions, callback: (err, stream) => void) {
         (options as any).socket = this.#channel;
         let wrapped = tls.connect(options);
         const onClose = (() => {

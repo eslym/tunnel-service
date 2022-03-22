@@ -1,6 +1,6 @@
 {
   "name": "@eslym/tunnel",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "Something like cloudflare tunnel but using ssh",
   "main": "dist/index.js",
   "bin": {
