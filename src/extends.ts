@@ -6,6 +6,7 @@ import {Agent} from "http";
 import {HttpAgent, HttpsAgent} from "./agents";
 import Protocol = Contracts.Protocol;
 import {wait} from "./utils";
+import {TimeoutError} from "./errors";
 
 interface PrivateProperties {
     uuid: string,
@@ -30,6 +31,7 @@ class AgentProvider implements Contracts.AgentProvider {
     readonly uuid: string;
     private _weight?: number;
     readonly activeChannels: Set<ServerChannel>;
+    readonly timeout: number;
 
     get weight(): number{
         if(this.hasOwnProperty('_weight')){
@@ -69,12 +71,36 @@ class AgentProvider implements Contracts.AgentProvider {
             });
         }
         return new Promise<Agent>((res, rej)=>{
+            let before = new Date();
+            let to = setTimeout(()=>{
+                rej(new TimeoutError());
+                to = undefined;
+            }, this.timeout);
             this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch)=>{
+                if(!to) {
+                    // If already timeout close the channel
+                    if(!err) ch.close();
+                    return;
+                }
+                clearTimeout(to);
                 if(err){
                     return rej(err);
                 }
+                let diff = (new Date() as any) - (before as any);
+                let timeout = ()=>{
+                    ch.emit('error', new TimeoutError());
+                    ch.close();
+                };
+                to = setTimeout(timeout, this.timeout - diff);
                 this.activeChannels.add(ch);
-                ch.once('close', ()=>this.activeChannels.delete(ch));
+                ch.once('close', ()=>{
+                    this.activeChannels.delete(ch);
+                    clearTimeout(to);
+                });
+                ch.on('data', ()=>{
+                    clearTimeout(to);
+                    to = setTimeout(timeout, this.timeout);
+                });
                 let claz = this.protocol === 'http' ? HttpAgent : HttpsAgent;
                 res(new claz(ch, this.client, this, {}));
             });
@@ -207,13 +233,14 @@ abstract class TraitConnection implements Contracts.ClientConnection {
         return this;
     }
 
-    createAgentProvider(binding: string, protocol: Protocol): AgentProvider{
+    createAgentProvider(binding: string, protocol: Protocol, timeout: number): AgentProvider{
         return Object.assign(Object.create(AgentProvider.prototype), {
             uuid: randomUUID(),
             client: this,
             binding, protocol,
             activeRequests: 0,
             activeChannels: new Set<ServerChannel>(),
+            timeout: timeout ?? 30000
         });
     }
 }

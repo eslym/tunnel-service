@@ -17,7 +17,7 @@ exports.HttpsAgent = exports.HttpAgent = void 0;
 const http_1 = require("http");
 const https = require("https");
 const tls = require("tls");
-function nothing() { }
+const utils_1 = require("./utils");
 // code from ssh2
 class HttpAgent extends http_1.Agent {
     constructor(channel, client, info, options) {
@@ -31,14 +31,10 @@ class HttpAgent extends http_1.Agent {
     }
     createConnection(options, callback) {
         __classPrivateFieldGet(this, _HttpAgent_info, "f").activeRequests++;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").setKeepAlive = nothing;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").setNoDelay = nothing;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").setTimeout = nothing;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").ref = nothing;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").unref = nothing;
-        __classPrivateFieldGet(this, _HttpAgent_channel, "f").destroySoon = __classPrivateFieldGet(this, _HttpAgent_channel, "f").destroy;
+        let sock = (0, utils_1.mockSocket)(__classPrivateFieldGet(this, _HttpAgent_channel, "f"));
+        sock.destroySoon = sock.destroy;
         __classPrivateFieldGet(this, _HttpAgent_channel, "f").on('close', () => __classPrivateFieldGet(this, _HttpAgent_info, "f").activeRequests--);
-        callback(null, __classPrivateFieldGet(this, _HttpAgent_channel, "f"));
+        callback(null, sock);
     }
 }
 exports.HttpAgent = HttpAgent;

@@ -11,6 +11,7 @@ declare class AgentProvider implements Contracts.AgentProvider {
     readonly uuid: string;
     private _weight?;
     readonly activeChannels: Set<ServerChannel>;
+    readonly timeout: number;
     get weight(): number;
     set weight(weight: number);
     get port(): number;
@@ -38,7 +39,7 @@ declare abstract class TraitConnection implements Contracts.ClientConnection {
     setLogging(enable: boolean): void;
     isBound(domain: string, protocol: Contracts.Protocol): boolean;
     setUser(user: Contracts.User): this;
-    createAgentProvider(binding: string, protocol: Protocol): AgentProvider;
+    createAgentProvider(binding: string, protocol: Protocol, timeout: number): AgentProvider;
 }
 export declare function extendClient(client: Connection): ClientConnection;
 export {};

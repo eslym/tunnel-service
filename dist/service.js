@@ -19,7 +19,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _TunnelService_instances, _TunnelService_sshServer, _TunnelService_httpServer, _TunnelService_express, _TunnelService_apiRoutes, _TunnelService_httpProxy, _TunnelService_option, _TunnelService_userClients, _TunnelService_proxyOptions, _TunnelService_setupExpress, _TunnelService_setupSSH;
+var _TunnelService_instances, _a, _TunnelService_sshServer, _TunnelService_httpServer, _TunnelService_express, _TunnelService_apiRoutes, _TunnelService_httpProxy, _TunnelService_option, _TunnelService_userClients, _TunnelService_proxyOptions, _TunnelService_setupExpress, _TunnelService_setupSSH;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TunnelService = void 0;
 const ssh2_1 = require("ssh2");
@@ -27,7 +27,6 @@ const express_1 = require("express");
 const wrapper_1 = require("./wrapper");
 const extends_1 = require("./extends");
 const http = require("http");
-const http_1 = require("http");
 const console_1 = require("console");
 const readline = require("readline");
 const commands_1 = require("./commands");
@@ -37,6 +36,7 @@ const HttpProxy = require("http-proxy");
 const ip = require("ip");
 const net = require("net");
 const logger_1 = require("@eslym/logger");
+const errors_1 = require("./errors");
 class TunnelService {
     constructor(option) {
         _TunnelService_instances.add(this);
@@ -62,7 +62,7 @@ class TunnelService {
         __classPrivateFieldSet(this, _TunnelService_httpServer, new http.Server(__classPrivateFieldGet(this, _TunnelService_express, "f")), "f");
         __classPrivateFieldGet(this, _TunnelService_httpServer, "f").on('upgrade', (req, socket, head) => __awaiter(this, void 0, void 0, function* () {
             Object.setPrototypeOf(req, Object.create(__classPrivateFieldGet(this, _TunnelService_express, "f").request));
-            const res = () => Object.setPrototypeOf(new http_1.ServerResponse(req), Object.create(__classPrivateFieldGet(this, _TunnelService_express, "f").response));
+            const res = () => (0, utils_1.createResponse)(req, __classPrivateFieldGet(this, _TunnelService_express, "f").response, (0, utils_1.mockSocket)(socket));
             try {
                 // Check is the hostname is ip address
                 if (net.isIP(req.hostname)) {
@@ -76,9 +76,20 @@ class TunnelService {
                 return __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.serviceUnavailable(req, res());
             }
             try {
-                let options = yield __classPrivateFieldGet(this, _TunnelService_instances, "m", _TunnelService_proxyOptions).call(this, req, agent);
-                __classPrivateFieldGet(this, _TunnelService_httpProxy, "f").ws(req, socket, head, options, () => {
-                    __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.badGateway(req, res());
+                let options = yield __classPrivateFieldGet(TunnelService, _a, "m", _TunnelService_proxyOptions).call(TunnelService, req, agent);
+                let write = socket._write;
+                // TODO: Handle the websocket error more properly, might need to make own proxy
+                socket._write = (...args) => {
+                    socket._write = write;
+                    return write.apply(socket, args);
+                };
+                __classPrivateFieldGet(this, _TunnelService_httpProxy, "f").ws(req, socket, head, options, (err) => {
+                    if (socket._write !== write) {
+                        if (err instanceof errors_1.TimeoutError) {
+                            return __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.gatewayTimeout(req, res());
+                        }
+                        __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.badGateway(req, res());
+                    }
                 });
             }
             catch (e) {
@@ -114,8 +125,7 @@ class TunnelService {
     }
 }
 exports.TunnelService = TunnelService;
-_TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMap(), _TunnelService_express = new WeakMap(), _TunnelService_apiRoutes = new WeakMap(), _TunnelService_httpProxy = new WeakMap(), _TunnelService_option = new WeakMap(), _TunnelService_userClients = new WeakMap(), _TunnelService_instances = new WeakSet(), _TunnelService_proxyOptions = function _TunnelService_proxyOptions(req, agent, protocol = 'http') {
-    var _a;
+_a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMap(), _TunnelService_express = new WeakMap(), _TunnelService_apiRoutes = new WeakMap(), _TunnelService_httpProxy = new WeakMap(), _TunnelService_option = new WeakMap(), _TunnelService_userClients = new WeakMap(), _TunnelService_instances = new WeakSet(), _TunnelService_proxyOptions = function _TunnelService_proxyOptions(req, agent, protocol = 'http') {
     return __awaiter(this, void 0, void 0, function* () {
         let hostPort = req.headers.host.split(':');
         let port = hostPort.length >= 2 ? hostPort[1] : (req.secure ? '443' : '80');
@@ -128,7 +138,7 @@ _TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMa
                 'X-Forwarded-Port': port,
             },
             agent: yield agent.getAgent(req.socket.remoteAddress, req.socket.remotePort),
-            proxyTimeout: (_a = __classPrivateFieldGet(this, _TunnelService_option, "f").proxyTimeout) !== null && _a !== void 0 ? _a : 30000,
+            proxyTimeout: undefined,
         };
     });
 }, _TunnelService_setupExpress = function _TunnelService_setupExpress() {
@@ -157,9 +167,12 @@ _TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMa
             return __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.serviceUnavailable(req, res);
         }
         try {
-            let options = yield __classPrivateFieldGet(this, _TunnelService_instances, "m", _TunnelService_proxyOptions).call(this, req, agent);
-            __classPrivateFieldGet(this, _TunnelService_httpProxy, "f").web(req, res, options, () => {
+            let options = yield __classPrivateFieldGet(TunnelService, _a, "m", _TunnelService_proxyOptions).call(TunnelService, req, agent);
+            __classPrivateFieldGet(this, _TunnelService_httpProxy, "f").web(req, res, options, (err) => {
                 if (!res.headersSent) {
+                    if (err instanceof errors_1.TimeoutError) {
+                        return __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.gatewayTimeout(req, res);
+                    }
                     return __classPrivateFieldGet(this, _TunnelService_option, "f").errorResHandler.badGateway(req, res);
                 }
             });
@@ -230,7 +243,7 @@ _TunnelService_sshServer = new WeakMap(), _TunnelService_httpServer = new WeakMa
                             client.log(`The current user is not allowed to bind to ${info.bindAddr}:${info.bindPort}`, true).catch();
                             return reject();
                         }
-                        let provider = client.createAgentProvider(info.bindAddr, protocol);
+                        let provider = client.createAgentProvider(info.bindAddr, protocol, __classPrivateFieldGet(this, _TunnelService_option, "f").proxyTimeout);
                         return (0, utils_1.promise)(__classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.attach(provider))
                             .then(() => {
                             client.log(`Bounded to ${info.bindAddr}:${info.bindPort}`, true).catch();

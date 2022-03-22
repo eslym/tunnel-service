@@ -13,6 +13,7 @@ exports.extendClient = void 0;
 const crypto_1 = require("crypto");
 const agents_1 = require("./agents");
 const utils_1 = require("./utils");
+const errors_1 = require("./errors");
 const privates = new WeakMap();
 class AgentProvider {
     get weight() {
@@ -48,12 +49,37 @@ class AgentProvider {
             });
         }
         return new Promise((res, rej) => {
+            let before = new Date();
+            let to = setTimeout(() => {
+                rej(new errors_1.TimeoutError());
+                to = undefined;
+            }, this.timeout);
             this.client.forwardOut(this.binding, this.port, sourceIp, sourcePort, (err, ch) => {
+                if (!to) {
+                    // If already timeout close the channel
+                    if (!err)
+                        ch.close();
+                    return;
+                }
+                clearTimeout(to);
                 if (err) {
                     return rej(err);
                 }
+                let diff = new Date() - before;
+                let timeout = () => {
+                    ch.emit('error', new errors_1.TimeoutError());
+                    ch.close();
+                };
+                to = setTimeout(timeout, this.timeout - diff);
                 this.activeChannels.add(ch);
-                ch.once('close', () => this.activeChannels.delete(ch));
+                ch.once('close', () => {
+                    this.activeChannels.delete(ch);
+                    clearTimeout(to);
+                });
+                ch.on('data', () => {
+                    clearTimeout(to);
+                    to = setTimeout(timeout, this.timeout);
+                });
                 let claz = this.protocol === 'http' ? agents_1.HttpAgent : agents_1.HttpsAgent;
                 res(new claz(ch, this.client, this, {}));
             });
@@ -174,13 +200,14 @@ class TraitConnection {
         privates.get(this).user = user;
         return this;
     }
-    createAgentProvider(binding, protocol) {
+    createAgentProvider(binding, protocol, timeout) {
         return Object.assign(Object.create(AgentProvider.prototype), {
             uuid: (0, crypto_1.randomUUID)(),
             client: this,
             binding, protocol,
             activeRequests: 0,
             activeChannels: new Set(),
+            timeout: timeout !== null && timeout !== void 0 ? timeout : 30000
         });
     }
 }

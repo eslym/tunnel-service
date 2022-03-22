@@ -15,8 +15,10 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 };
 var _DomainMapping_instances, _DomainMapping_mapping, _DomainMapping_resolve;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.wait = exports.DomainMapping = exports.selectLessRequest = exports.selectRandomly = exports.promise = void 0;
+exports.createResponse = exports.mockSocket = exports.wait = exports.DomainMapping = exports.selectLessRequest = exports.selectRandomly = exports.promise = void 0;
 const punycode = require("punycode");
+const net_1 = require("net");
+const http_1 = require("http");
 function promise(value) {
     return __awaiter(this, void 0, void 0, function* () {
         return value;
@@ -124,5 +126,27 @@ function wait(milliseconds) {
     });
 }
 exports.wait = wait;
+const nothing = () => undefined;
+function mockSocket(stream) {
+    if (stream instanceof net_1.Socket) {
+        return stream;
+    }
+    let sock = stream;
+    sock.setKeepAlive = nothing;
+    sock.setNoDelay = nothing;
+    sock.setTimeout = nothing;
+    sock.ref = nothing;
+    sock.unref = nothing;
+    return sock;
+}
+exports.mockSocket = mockSocket;
+function createResponse(req, type, socket) {
+    let res = new http_1.ServerResponse(req);
+    res.assignSocket(mockSocket(socket));
+    Object.setPrototypeOf(res, Object.create(type));
+    req.res = res;
+    return req.res;
+}
+exports.createResponse = createResponse;
 
 //# sourceMappingURL=utils.js.map

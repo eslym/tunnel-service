@@ -20,6 +20,7 @@ import ErrorResponseHandler = Contracts.ErrorResponseHandler;
 import Protocol = Contracts.Protocol;
 import * as net from "net";
 import {logger, Logger} from "@eslym/logger";
+import {TimeoutError} from "./errors";
 
 export interface LaunchOption {
     httpPort: number;
@@ -87,9 +88,20 @@ export class TunnelService {
                 return this.#option.errorResHandler.serviceUnavailable(req, res());
             }
             try {
-                let options = await this.#proxyOptions(req, agent);
-                this.#httpProxy.ws(req, socket, head, options, () => {
-                    this.#option.errorResHandler.badGateway(req, res());
+                let options = await TunnelService.#proxyOptions(req, agent);
+                let write = socket._write;
+                // TODO: Handle the websocket error more properly, might need to make own proxy
+                socket._write = (...args)=>{
+                    socket._write = write;
+                    return write.apply(socket, args);
+                }
+                this.#httpProxy.ws(req, socket, head, options, (err) => {
+                    if(socket._write !== write){
+                        if(err instanceof TimeoutError){
+                            return this.#option.errorResHandler.gatewayTimeout(req, res());
+                        }
+                        this.#option.errorResHandler.badGateway(req, res());
+                    }
                 });
             } catch (e) {
                 return this.#option.errorResHandler.badGateway(req, res());
@@ -100,7 +112,7 @@ export class TunnelService {
         });
     }
 
-    async #proxyOptions(req: Request, agent: AgentProvider, protocol: 'http' | 'ws' = 'http'): Promise<ProxyOption> {
+    static async #proxyOptions(req: Request, agent: AgentProvider, protocol: 'http' | 'ws' = 'http'): Promise<ProxyOption> {
         let hostPort = req.headers.host.split(':');
         let port = hostPort.length >= 2 ? hostPort[1] : (req.secure ? '443' : '80');
         return {
@@ -112,7 +124,7 @@ export class TunnelService {
                 'X-Forwarded-Port': port,
             },
             agent: await agent.getAgent(req.socket.remoteAddress, req.socket.remotePort),
-            proxyTimeout: this.#option.proxyTimeout ?? 30000,
+            proxyTimeout: undefined,
         }
     }
 
@@ -142,9 +154,12 @@ export class TunnelService {
                 return this.#option.errorResHandler.serviceUnavailable(req, res);
             }
             try {
-                let options = await this.#proxyOptions(req, agent);
-                this.#httpProxy.web(req, res, options, () => {
+                let options = await TunnelService.#proxyOptions(req, agent);
+                this.#httpProxy.web(req, res, options, (err) => {
                     if (!res.headersSent) {
+                        if(err instanceof TimeoutError){
+                            return this.#option.errorResHandler.gatewayTimeout(req, res);
+                        }
                         return this.#option.errorResHandler.badGateway(req, res);
                     }
                 });
@@ -218,7 +233,7 @@ export class TunnelService {
                                 client.log(`The current user is not allowed to bind to ${info.bindAddr}:${info.bindPort}`, true).catch();
                                 return reject();
                             }
-                            let provider = client.createAgentProvider(info.bindAddr, protocol);
+                            let provider = client.createAgentProvider(info.bindAddr, protocol, this.#option.proxyTimeout);
                             return promise(this.#option.agentPool.attach(provider))
                                 .then(() => {
                                     client.log(`Bounded to ${info.bindAddr}:${info.bindPort}`, true).catch();
