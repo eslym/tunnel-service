@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { Contracts } from "./contracts";
-import { PublicKeyAuthContext } from "ssh2";
+import { AuthContext, PublicKeyAuthContext } from "ssh2";
 import { Agent } from "http";
 import { Request, Response } from "express";
 /**
@@ -25,6 +25,7 @@ export declare namespace SafeWrapped {
         constructor(client: Contracts.ClientConnection);
         get uuid(): string;
         get user(): Contracts.User;
+        get authenticatedContext(): AuthContext;
         get agents(): Contracts.AgentProvider[];
         get activeRequests(): number;
         get state(): 'active' | 'pausing' | 'shutting-down';

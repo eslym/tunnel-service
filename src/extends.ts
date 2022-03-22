@@ -1,6 +1,6 @@
 import {Contracts} from "./contracts";
 import {randomUUID} from "crypto";
-import {Connection, ServerChannel} from "ssh2";
+import {AuthContext, Connection, ServerChannel} from "ssh2";
 import {Console} from 'console';
 import {Agent} from "http";
 import {HttpAgent, HttpsAgent} from "./agents";
@@ -17,7 +17,8 @@ interface PrivateProperties {
     pendingLogs: string[],
     weight: number,
     activeRequests: number,
-    state: 'active' | 'pausing' | 'shutting-down'
+    state: 'active' | 'pausing' | 'shutting-down',
+    authenticatedContext?: AuthContext,
 }
 
 const privates = new WeakMap<Connection | TraitConnection, PrivateProperties>();
@@ -119,6 +120,14 @@ abstract class TraitConnection implements Contracts.ClientConnection {
 
     get user(): Contracts.User {
         return privates.get(this).user;
+    }
+
+    get authenticatedContext(): AuthContext{
+        return privates.get(this).authenticatedContext;
+    }
+
+    set authenticatedContext(context){
+        privates.get(this).authenticatedContext = context;
     }
 
     get bindings(): Map<string, AgentProvider> {

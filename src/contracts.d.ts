@@ -1,4 +1,4 @@
-import {PublicKeyAuthContext} from "ssh2";
+import {AuthContext, PublicKeyAuthContext} from "ssh2";
 import {Agent} from "http";
 import Dict = NodeJS.Dict;
 import {Request, Response} from 'express';
@@ -61,7 +61,12 @@ export namespace Contracts {
         /**
          * User of the connection
          */
-        readonly user?: User;
+        readonly user: User | undefined;
+
+        /**
+         * The authenticated context
+         */
+        readonly authenticatedContext: AuthContext | undefined;
 
         /**
          * HTTP Agents

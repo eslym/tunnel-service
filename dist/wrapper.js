@@ -68,6 +68,9 @@ var SafeWrapped;
         get user() {
             return User.wrap(__classPrivateFieldGet(this, _ClientConnection_client, "f").user);
         }
+        get authenticatedContext() {
+            return __classPrivateFieldGet(this, _ClientConnection_client, "f").authenticatedContext;
+        }
         get agents() {
             return __classPrivateFieldGet(this, _ClientConnection_client, "f").agents.map(AgentProvider.wrap);
         }

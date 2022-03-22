@@ -96,6 +96,12 @@ class TraitConnection {
     get user() {
         return privates.get(this).user;
     }
+    get authenticatedContext() {
+        return privates.get(this).authenticatedContext;
+    }
+    set authenticatedContext(context) {
+        privates.get(this).authenticatedContext = context;
+    }
     get bindings() {
         return privates.get(this).bindings;
     }

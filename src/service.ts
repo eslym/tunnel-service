@@ -41,7 +41,7 @@ export class TunnelService {
     readonly #apiRoutes: Router;
     #httpProxy: HttpProxy;
     #option: LaunchOption;
-    #userClients: Map<string, ClientConnection>;
+    #userClients: Map<string, Set<ClientConnection>>;
 
     get apiRoutes(){
         return this.#apiRoutes;
@@ -60,7 +60,7 @@ export class TunnelService {
     }
 
     constructor(option: LaunchOption) {
-        this.#userClients = new Map<string, ClientConnection>();
+        this.#userClients = new Map<string, Set<ClientConnection>>();
         this.#option = Object.create(option);
         this.#option.userProvider = SafeWrapped.UserProvider.wrap(option.userProvider);
         this.#option.agentPool = SafeWrapped.AgentPool.wrap(option.agentPool);
@@ -212,6 +212,11 @@ export class TunnelService {
                 if (authenticated) {
                     this.#option.logger.log(`${client.uuid} authenticated as ${context.username} using ${context.method}`);
                     client.setUser(SafeWrapped.User.wrap(user));
+                    client.authenticatedContext = context;
+                    if(!this.#userClients.has(user.username)){
+                        this.#userClients.set(user.username, new Set<ClientConnection>());
+                    }
+                    this.#userClients.get(user.username).add(client);
                     return context.accept();
                 }
                 context.reject();
@@ -310,6 +315,7 @@ export class TunnelService {
             })).on('close', ()=>{
                 this.#option.agentPool.detachAll(client);
                 this.#option.logger.log(`${client.uuid} disconnected.`);
+                this.#userClients.get(client.user.username).delete(client);
             });
         }).on('listening', ()=>{
             let addr = this.#sshServer.address();
@@ -320,9 +326,11 @@ export class TunnelService {
     start() {
         this.#option.userProvider.on('user-deactivated', async (username) => {
             if (this.#userClients.has(username)) {
-                let client = this.#userClients.get(username);
-                await this.#option.agentPool.detachAll(client);
-                client.end();
+                let clients = this.#userClients.get(username);
+                for(let client of clients){
+                    await this.#option.agentPool.detachAll(client);
+                    client.end();
+                }
             }
         });
         this.#httpServer.listen(this.#option.httpPort);

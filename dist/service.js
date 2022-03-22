@@ -115,9 +115,11 @@ class TunnelService {
     start() {
         __classPrivateFieldGet(this, _TunnelService_option, "f").userProvider.on('user-deactivated', (username) => __awaiter(this, void 0, void 0, function* () {
             if (__classPrivateFieldGet(this, _TunnelService_userClients, "f").has(username)) {
-                let client = __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(username);
-                yield __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
-                client.end();
+                let clients = __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(username);
+                for (let client of clients) {
+                    yield __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
+                    client.end();
+                }
             }
         }));
         __classPrivateFieldGet(this, _TunnelService_httpServer, "f").listen(__classPrivateFieldGet(this, _TunnelService_option, "f").httpPort);
@@ -222,6 +224,11 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
             if (authenticated) {
                 __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`${client.uuid} authenticated as ${context.username} using ${context.method}`);
                 client.setUser(wrapper_1.SafeWrapped.User.wrap(user));
+                client.authenticatedContext = context;
+                if (!__classPrivateFieldGet(this, _TunnelService_userClients, "f").has(user.username)) {
+                    __classPrivateFieldGet(this, _TunnelService_userClients, "f").set(user.username, new Set());
+                }
+                __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(user.username).add(client);
                 return context.accept();
             }
             context.reject();
@@ -321,6 +328,7 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
         })).on('close', () => {
             __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
             __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`${client.uuid} disconnected.`);
+            __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(client.user.username).delete(client);
         });
     }).on('listening', () => {
         let addr = __classPrivateFieldGet(this, _TunnelService_sshServer, "f").address();

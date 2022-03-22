@@ -1,5 +1,5 @@
 import {Contracts} from "./contracts";
-import {PublicKeyAuthContext} from "ssh2";
+import {AuthContext, PublicKeyAuthContext} from "ssh2";
 import {promise} from "./utils";
 import {Agent} from "http";
 import {Request, Response} from "express";
@@ -69,6 +69,10 @@ export namespace SafeWrapped {
 
         get user(): Contracts.User {
             return User.wrap(this.#client.user);
+        }
+
+        get authenticatedContext(): AuthContext{
+            return this.#client.authenticatedContext;
         }
 
         get agents(): Contracts.AgentProvider[] {
