@@ -6,6 +6,7 @@ import UserProvider = Contracts.UserProvider;
 import AgentProvider = Contracts.AgentProvider;
 import AgentPool = Contracts.AgentPool;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
+import { IncomingMessage } from "http";
 export declare class FileUserProvider extends EventEmitter implements UserProvider {
     #private;
     constructor(directory: string);
@@ -25,5 +26,11 @@ export declare class TextPlainErrorResponseHandler implements ErrorResponseHandl
     badGateway(request: Request, response: Response): Contracts.AsyncResult<void>;
     serviceUnavailable(request: Request, response: Response): Contracts.AsyncResult<void>;
     gatewayTimeout(request: Request, response: Response): Contracts.AsyncResult<void>;
+}
+export declare class HttpCatsErrorResponseHandler implements ErrorResponseHandler {
+    handle(status: number): Promise<IncomingMessage>;
+    badGateway(request: Request, response: Response): Promise<void>;
+    gatewayTimeout(request: Request, response: Response): Promise<void>;
+    serviceUnavailable(request: Request, response: Response): Promise<void>;
 }
 export {};

@@ -21,18 +21,19 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 };
 var _FileUserProvider_directory, _FileUser_configPath, _DefaultAgentPool_agentSelector, _DefaultAgentPool_agentIndex, _DefaultAgentPool_domains;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TextPlainErrorResponseHandler = exports.DefaultAgentPool = exports.FileUserProvider = void 0;
+exports.HttpCatsErrorResponseHandler = exports.TextPlainErrorResponseHandler = exports.DefaultAgentPool = exports.FileUserProvider = void 0;
 const events_1 = require("events");
 const path = require("path");
 const fs = require("fs");
 const ssh2_1 = require("ssh2");
 const crypto_1 = require("crypto");
 const utils_1 = require("./utils");
-var parseKey = ssh2_1.utils.parseKey;
+const util = require("util");
+const https = require("https");
 const JSON5 = require("json5");
 const YAML = require("yaml");
 const bcrypt = require("bcrypt");
-const util = require("util");
+var parseKey = ssh2_1.utils.parseKey;
 const ConfigLoader = {};
 function yamlLoader(path) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -239,5 +240,43 @@ class TextPlainErrorResponseHandler {
     }
 }
 exports.TextPlainErrorResponseHandler = TextPlainErrorResponseHandler;
+class HttpCatsErrorResponseHandler {
+    handle(status) {
+        return new Promise((resolve, reject) => {
+            https.request({
+                method: 'get',
+                path: `/${status}`,
+                host: 'http.cat',
+            })
+                .on('response', (res) => {
+                resolve(res);
+            })
+                .once('error', reject)
+                .end();
+        });
+    }
+    badGateway(request, response) {
+        return this.handle(502).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="502 Bad Gateway.jpg"`);
+            incoming.pipe(response);
+        });
+    }
+    gatewayTimeout(request, response) {
+        return this.handle(504).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="504 Gateway Timeout.jpg"`);
+            incoming.pipe(response);
+        });
+    }
+    serviceUnavailable(request, response) {
+        return this.handle(503).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="503 Service Unavailable.jpg"`);
+            incoming.pipe(response);
+        });
+    }
+}
+exports.HttpCatsErrorResponseHandler = HttpCatsErrorResponseHandler;
 
 //# sourceMappingURL=builtins.js.map

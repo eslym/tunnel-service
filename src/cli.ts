@@ -5,7 +5,12 @@ import {ArgumentsCamelCase, Argv} from "yargs";
 import * as fs from "fs";
 import * as path from "path";
 import {LaunchOption, TunnelService} from "./service";
-import {DefaultAgentPool, FileUserProvider, TextPlainErrorResponseHandler} from "./builtins";
+import {
+    DefaultAgentPool,
+    FileUserProvider,
+    HttpCatsErrorResponseHandler,
+    TextPlainErrorResponseHandler
+} from "./builtins";
 import {selectLessRequest, selectRandomly} from "./utils";
 
 interface CliOptions {
@@ -16,6 +21,7 @@ interface CliOptions {
     proxy: string,
     timeout: number,
     balancing: string,
+    cat: boolean,
 }
 
 // This is the only way to keep multiple instance of yargs for different purpose
@@ -52,6 +58,12 @@ interface CliOptions {
         type: "string",
         default: 'requests',
     })
+        .option('cat', {
+            describe: 'Use the HTTP Cats(https://http.cat) for 502, 503 and 504 response.',
+            alias: ['c', 'cats', 'httpCats'],
+            type: 'boolean',
+            default: false
+        })
         .demandOption(['key', 'auth'])
         .default('httpPort', 0)
         .default('sshPort', 0);
@@ -70,7 +82,7 @@ interface CliOptions {
         serverKey: fs.readFileSync(args.key),
         agentPool: new DefaultAgentPool(args.balancing === 'requests' ? selectLessRequest : selectRandomly),
         userProvider: new FileUserProvider(args.auth),
-        errorResHandler: new TextPlainErrorResponseHandler(),
+        errorResHandler: args.cat ? new HttpCatsErrorResponseHandler() : new TextPlainErrorResponseHandler(),
         proxyTimeout: args.timeout,
         trustedProxy: args.proxy,
     };

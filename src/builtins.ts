@@ -7,6 +7,11 @@ import {ParsedKey} from "ssh2-streams";
 import {timingSafeEqual} from "crypto";
 import {DomainMapping} from "./utils";
 import {Request, Response} from "express";
+import * as util from "util";
+import * as https from "https";
+import JSON5 = require('json5');
+import YAML = require('yaml');
+import bcrypt = require('bcrypt');
 import UserProvider = Contracts.UserProvider;
 import User = Contracts.User;
 import Dict = NodeJS.Dict;
@@ -15,24 +20,21 @@ import Protocol = Contracts.Protocol;
 import AgentProvider = Contracts.AgentProvider;
 import AgentPool = Contracts.AgentPool;
 import ErrorResponseHandler = Contracts.ErrorResponseHandler;
-import JSON5 = require('json5');
-import YAML = require('yaml');
-import bcrypt = require('bcrypt');
-import * as util from "util";
+import {IncomingMessage} from "http";
 
 const ConfigLoader: Dict<(path: string) => Promise<UserConfig>> = {};
 
-async function yamlLoader(path: string){
+async function yamlLoader(path: string) {
     let buff = (await util.promisify(fs.readFile)(path)).toString();
     return YAML.parse(buff);
 }
 
-async function jsonLoader(path: string){
+async function jsonLoader(path: string) {
     let buff = (await util.promisify(fs.readFile)(path)).toString();
     return JSON.parse(buff);
 }
 
-async function json5Loader(path: string){
+async function json5Loader(path: string) {
     let buff = (await util.promisify(fs.readFile)(path)).toString();
     return JSON5.parse(buff);
 }
@@ -119,7 +121,7 @@ class FileUser implements User {
     }
 
     authPassword(password: string): Promise<boolean> {
-        return this.loadConfig().then((config)=>{
+        return this.loadConfig().then((config) => {
             if (!config.hasOwnProperty('password')) {
                 return false;
             }
@@ -130,7 +132,7 @@ class FileUser implements User {
     async canBind(domain: string, protocol: Protocol): Promise<boolean> {
         let config = await this.loadConfig();
         let validator = new DomainMapping<true>();
-        for(let pattern of config.domains){
+        for (let pattern of config.domains) {
             validator.addByPattern(pattern, true);
         }
         return validator.resolve(domain).found;
@@ -241,5 +243,46 @@ export class TextPlainErrorResponseHandler implements ErrorResponseHandler {
         response.status(504)
             .header('Content-Type', 'text/plain')
             .send('504 Gateway Timeout');
+    }
+}
+
+export class HttpCatsErrorResponseHandler implements ErrorResponseHandler {
+    handle(status: number) {
+        return new Promise<IncomingMessage>((resolve, reject) => {
+            https.request({
+                method: 'get',
+                path: `/${status}`,
+                host: 'http.cat',
+            })
+                .on('response', (res) => {
+                    resolve(res);
+                })
+                .once('error', reject)
+                .end();
+        });
+    }
+
+    badGateway(request: Request, response: Response): Promise<void> {
+        return this.handle(502).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="502 Bad Gateway.jpg"`);
+            incoming.pipe(response);
+        });
+    }
+
+    gatewayTimeout(request: Request, response: Response): Promise<void> {
+        return this.handle(504).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="504 Gateway Timeout.jpg"`);
+            incoming.pipe(response);
+        });
+    }
+
+    serviceUnavailable(request: Request, response: Response): Promise<void> {
+        return this.handle(503).then((incoming) => {
+            response.header('content-type', incoming.headers['content-type'])
+                .header('content-disposition', `inline; filename="503 Service Unavailable.jpg"`);
+            incoming.pipe(response);
+        });
     }
 }

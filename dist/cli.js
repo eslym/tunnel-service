@@ -41,6 +41,12 @@ new yargs().command('$0', 'Start a tunnel server', (cmd) => {
         type: "string",
         default: 'requests',
     })
+        .option('cat', {
+        describe: 'Use the HTTP Cats(https://http.cat) for 502, 503 and 504 response.',
+        alias: ['c', 'cats', 'httpCats'],
+        type: 'boolean',
+        default: false
+    })
         .demandOption(['key', 'auth'])
         .default('httpPort', 0)
         .default('sshPort', 0);
@@ -59,7 +65,7 @@ new yargs().command('$0', 'Start a tunnel server', (cmd) => {
         serverKey: fs.readFileSync(args.key),
         agentPool: new builtins_1.DefaultAgentPool(args.balancing === 'requests' ? utils_1.selectLessRequest : utils_1.selectRandomly),
         userProvider: new builtins_1.FileUserProvider(args.auth),
-        errorResHandler: new builtins_1.TextPlainErrorResponseHandler(),
+        errorResHandler: args.cat ? new builtins_1.HttpCatsErrorResponseHandler() : new builtins_1.TextPlainErrorResponseHandler(),
         proxyTimeout: args.timeout,
         trustedProxy: args.proxy,
     };
