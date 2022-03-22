@@ -19,6 +19,8 @@ export namespace Contracts {
         off<E extends keyof T>(event: E, listener: T[E]): this;
     }
 
+    export type Guard = (request: Request, response: Response, next: (error?: any) => void) => unknown;
+
     /**
      * User interface for authorization
      */

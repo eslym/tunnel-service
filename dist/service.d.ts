@@ -26,5 +26,6 @@ export declare class TunnelService {
     get express(): Express;
     get sshServer(): Server;
     get httpServer(): http.Server;
+    get guards(): Set<Contracts.Guard>;
     start(): void;
 }

@@ -148,6 +148,9 @@ export function mockSocket(stream: Duplex) {
 }
 
 export function createResponse(req: Request, type: Response, socket: Socket) {
+    if (typeof req.res !== 'undefined') {
+        return req.res;
+    }
     let res = new ServerResponse(req);
     res.assignSocket(mockSocket(socket));
     Object.setPrototypeOf(res, Object.create(type));

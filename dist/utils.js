@@ -141,6 +141,9 @@ function mockSocket(stream) {
 }
 exports.mockSocket = mockSocket;
 function createResponse(req, type, socket) {
+    if (typeof req.res !== 'undefined') {
+        return req.res;
+    }
     let res = new http_1.ServerResponse(req);
     res.assignSocket(mockSocket(socket));
     Object.setPrototypeOf(res, Object.create(type));
