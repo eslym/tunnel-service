@@ -2,6 +2,10 @@ import {Contracts} from "./contracts";
 import * as punycode from "punycode";
 import AsyncResult = Contracts.AsyncResult;
 import AgentProvider = Contracts.AgentProvider;
+import {Duplex} from "stream";
+import {Socket} from "net";
+import {Request, Response} from "express";
+import {ServerResponse} from "http";
 
 export async function promise<T>(value: AsyncResult<T>): Promise<T> {
     return value;
@@ -126,4 +130,27 @@ export class DomainMapping<T> {
 
 export async function wait(milliseconds: number){
     return new Promise((res)=>setTimeout(res, milliseconds));
+}
+
+const nothing = ()=>undefined;
+
+export function mockSocket(stream: Duplex){
+    if(stream instanceof Socket){
+        return stream;
+    }
+    let sock = stream as any as Socket;
+    sock.setKeepAlive = nothing;
+    sock.setNoDelay = nothing;
+    sock.setTimeout = nothing;
+    sock.ref = nothing;
+    sock.unref = nothing;
+    return sock;
+}
+
+export function createResponse(req: Request, type: Response, socket: Socket){
+    let res = new ServerResponse(req);
+    res.assignSocket(mockSocket(socket));
+    Object.setPrototypeOf(res, Object.create(type));
+    req.res = res as Response;
+    return req.res;
 }

@@ -6,11 +6,10 @@ import {SafeWrapped} from "./wrapper";
 import {ServerOptions as ProxyOption} from "http-proxy";
 import {ClientConnection, extendClient} from "./extends";
 import * as http from "http";
-import {ServerResponse} from "http";
 import {Console} from "console";
 import * as readline from "readline";
 import {commands} from "./commands";
-import {promise} from "./utils";
+import {createResponse, mockSocket, promise} from "./utils";
 import express = require('express');
 import HttpProxy = require('http-proxy');
 import ip = require('ip');
@@ -75,7 +74,7 @@ export class TunnelService {
         this.#httpServer = new http.Server(this.#express);
         this.#httpServer.on('upgrade', async (req: Request, socket, head) => {
             Object.setPrototypeOf(req, Object.create(this.#express.request));
-            const res = () => Object.setPrototypeOf(new ServerResponse(req), Object.create(this.#express.response));
+            const res = ()=>createResponse(req, this.#express.response, mockSocket(socket));
             try {
                 // Check is the hostname is ip address
                 if (net.isIP(req.hostname)) {

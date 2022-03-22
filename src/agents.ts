@@ -5,8 +5,7 @@ import {ServerChannel} from "ssh2";
 import {ClientConnection} from "./extends";
 import * as https from "https";
 import * as tls from "tls";
-
-function nothing(){}
+import {mockSocket} from "./utils";
 
 interface BindingInfo {
     activeRequests: number;
@@ -27,14 +26,10 @@ export class HttpAgent extends Agent{
 
     public createConnection(options: AgentOptions, callback: (err, stream)=>void){
         this.#info.activeRequests ++;
-        (this.#channel as any).setKeepAlive = nothing;
-        (this.#channel as any).setNoDelay = nothing;
-        (this.#channel as any).setTimeout = nothing;
-        (this.#channel as any).ref = nothing;
-        (this.#channel as any).unref = nothing;
-        (this.#channel as any).destroySoon = this.#channel.destroy;
+        let sock = mockSocket(this.#channel);
+        (sock as any).destroySoon = sock.destroy;
         this.#channel.on('close', ()=>this.#info.activeRequests--);
-        callback(null, this.#channel);
+        callback(null, sock);
     }
 }
 
