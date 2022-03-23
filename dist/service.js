@@ -173,6 +173,16 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
     }, (connection) => {
         let client = (0, extends_1.extendClient)(connection);
         __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`Client ${client.uuid} connected.`);
+        let dropClient = () => {
+            __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
+            __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`${client.uuid} disconnected.`);
+            __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(client.user.username).delete(client);
+            for (let agent of client.bindings.values()) {
+                for (let ch of agent.activeChannels) {
+                    ch.close();
+                }
+            }
+        };
         client.on('authentication', (context) => __awaiter(this, void 0, void 0, function* () {
             let user = yield (0, utils_1.promise)(__classPrivateFieldGet(this, _TunnelService_option, "f").userProvider.findUser(context.username, client))
                 .catch(e => __classPrivateFieldGet(this, _TunnelService_option, "f").logger.error(e));
@@ -292,15 +302,10 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
                     });
                 });
             });
-        })).on('close', () => {
-            __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
-            __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`${client.uuid} disconnected.`);
-            __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(client.user.username).delete(client);
-            for (let agent of client.bindings.values()) {
-                for (let ch of agent.activeChannels) {
-                    ch.close();
-                }
-            }
+        })).on('close', dropClient)
+            .on('error', (err) => {
+            logger_1.logger.error(`Client error: ${err.message}`);
+            dropClient();
         });
     }).on('listening', () => {
         let addr = __classPrivateFieldGet(this, _TunnelService_sshServer, "f").address();

@@ -183,6 +183,16 @@ export class TunnelService {
         }, (connection) => {
             let client = extendClient(connection);
             this.#option.logger.log(`Client ${client.uuid} connected.`);
+            let dropClient = () => {
+                this.#option.agentPool.detachAll(client);
+                this.#option.logger.log(`${client.uuid} disconnected.`);
+                this.#userClients.get(client.user.username).delete(client);
+                for (let agent of client.bindings.values()) {
+                    for (let ch of agent.activeChannels) {
+                        ch.close();
+                    }
+                }
+            };
             client.on('authentication', async (context) => {
                 let user = await promise(this.#option.userProvider.findUser(context.username, client))
                     .catch(e => this.#option.logger.error(e));
@@ -301,16 +311,11 @@ export class TunnelService {
                         });
                     });
                 });
-            })).on('close', () => {
-                this.#option.agentPool.detachAll(client);
-                this.#option.logger.log(`${client.uuid} disconnected.`);
-                this.#userClients.get(client.user.username).delete(client);
-                for (let agent of client.bindings.values()) {
-                    for (let ch of agent.activeChannels) {
-                        ch.close();
-                    }
-                }
-            });
+            })).on('close', dropClient)
+                .on('error', (err: Error) => {
+                    logger.error(`Client error: ${err.message}`);
+                    dropClient();
+                })
         }).on('listening', () => {
             let addr = this.#sshServer.address();
             this.#option.logger.info(`SSH Server Listening on ${addr.port}`);
