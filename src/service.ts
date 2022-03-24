@@ -186,7 +186,8 @@ export class TunnelService {
             let dropClient = () => {
                 this.#option.agentPool.detachAll(client);
                 this.#option.logger.log(`${client.uuid} disconnected.`);
-                this.#userClients.get(client.user.username).delete(client);
+                if(client.user && this.#userClients.has(client.user.username))
+                    this.#userClients.get(client.user.username).delete(client);
                 for (let agent of client.bindings.values()) {
                     for (let ch of agent.activeChannels) {
                         ch.close();

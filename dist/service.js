@@ -176,7 +176,8 @@ _a = TunnelService, _TunnelService_sshServer = new WeakMap(), _TunnelService_htt
         let dropClient = () => {
             __classPrivateFieldGet(this, _TunnelService_option, "f").agentPool.detachAll(client);
             __classPrivateFieldGet(this, _TunnelService_option, "f").logger.log(`${client.uuid} disconnected.`);
-            __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(client.user.username).delete(client);
+            if (client.user && __classPrivateFieldGet(this, _TunnelService_userClients, "f").has(client.user.username))
+                __classPrivateFieldGet(this, _TunnelService_userClients, "f").get(client.user.username).delete(client);
             for (let agent of client.bindings.values()) {
                 for (let ch of agent.activeChannels) {
                     ch.close();
