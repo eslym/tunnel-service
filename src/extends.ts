@@ -261,7 +261,7 @@ export function extendClient(client: Connection): ClientConnection {
         uuid: randomUUID(),
         bindings: new Map<string, AgentProvider>(),
         logging: false,
-        weight: 0,
+        weight: 1,
         pendingLogs: [],
         activeRequests: 0,
         state: 'active',

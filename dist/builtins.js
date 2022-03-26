@@ -195,7 +195,8 @@ class DefaultAgentPool {
     detach(agent) {
         let map = __classPrivateFieldGet(this, _DefaultAgentPool_agentIndex, "f").get(agent.uuid);
         map.delete(agent.uuid);
-        if (__classPrivateFieldGet(this, _DefaultAgentPool_domains, "f").getByPattern(agent.binding).size === 0) {
+        let p = __classPrivateFieldGet(this, _DefaultAgentPool_domains, "f").getByPattern(agent.binding);
+        if (p && p.size === 0) {
             __classPrivateFieldGet(this, _DefaultAgentPool_domains, "f").removePattern(agent.binding);
         }
     }

@@ -197,7 +197,8 @@ export class DefaultAgentPool implements AgentPool {
     detach(agent: Contracts.AgentProvider): void {
         let map = this.#agentIndex.get(agent.uuid);
         map.delete(agent.uuid);
-        if (this.#domains.getByPattern(agent.binding).size === 0) {
+        let p = this.#domains.getByPattern(agent.binding);
+        if (p && p.size === 0) {
             this.#domains.removePattern(agent.binding);
         }
     }

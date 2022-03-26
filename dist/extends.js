@@ -223,7 +223,7 @@ function extendClient(client) {
         uuid: (0, crypto_1.randomUUID)(),
         bindings: new Map(),
         logging: false,
-        weight: 0,
+        weight: 1,
         pendingLogs: [],
         activeRequests: 0,
         state: 'active',
